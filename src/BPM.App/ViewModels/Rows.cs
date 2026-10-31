@@ -82,6 +82,8 @@ public sealed partial class ProfileNode : ObservableObject
     [RelayCommand] Task Open() => ActionService.Instance.OpenProfileAsync(Info);
     [RelayCommand] Task ShowExtensionsPage() => ActionService.Instance.ShowExtensionsPageAsync(Info);
     [RelayCommand] Task CreateShortcut() => ActionService.Instance.CreateShortcutAsync(Info);
+    [RelayCommand] Task InstallExtension() => ActionService.Instance.ShowInstallAsync(preselect: Info);
+    public bool CanInstallExtensions => Info.Browser.Family == BrowserFamily.Chromium && Info.Browser.ExePath != null;
 }
 
 /// <summary>One extension in one profile.</summary>
@@ -157,6 +159,7 @@ public sealed partial class ExtensionRow : ObservableObject
     [RelayCommand] Task UnblockEverywhere() => ActionService.Instance.SetPolicyAsync(Info, null);
     [RelayCommand] Task ResetData() => ActionService.Instance.ResetDataAsync(Info);
     [RelayCommand] Task Reinstall() => ActionService.Instance.ReinstallAsync(Info);
+    [RelayCommand] Task InstallElsewhere() => ActionService.Instance.ShowInstallAsync(ActionService.SourceOf(Info));
 
     [RelayCommand] void CopyId() => Shell.Copy(Id, $"Copied the ID of {Name}");
     [RelayCommand] void OpenStorePage() { if (StoreUrl != null) Shell.OpenUrl(StoreUrl); }

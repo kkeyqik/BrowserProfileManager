@@ -26,7 +26,11 @@
             </Grid.RowDefinitions>
             <ui:TextBox PlaceholderText="Search all extensions" Icon="{ui:SymbolIcon Search24}" ClearButtonEnabled="True"
                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
-            <ComboBox Grid.Row="1" Margin="0,8,0,8" ItemsSource="{Binding Filters}" SelectedItem="{Binding SelectedFilter}" />
+            <DockPanel Grid.Row="1" Margin="0,8,0,8">
+                <ui:Button DockPanel.Dock="Right" Content="Install…" Icon="{ui:SymbolIcon ArrowDownload24}" Margin="8,0,0,0"
+                           Command="{Binding InstallExtensionCommand}" ToolTip="Install an extension from the Chrome Web Store, a folder or a .crx file in any profiles" />
+                <ComboBox ItemsSource="{Binding Filters}" SelectedItem="{Binding SelectedFilter}" />
+            </DockPanel>
             <Border Grid.Row="2" Style="{StaticResource Panel}">
                 <ListBox ItemsSource="{Binding Groups}" SelectedItem="{Binding SelectedGroup}" Background="Transparent" BorderThickness="0"
                          ItemContainerStyle="{StaticResource NavItem}" Padding="4"

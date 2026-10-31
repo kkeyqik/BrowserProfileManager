@@ -320,6 +320,124 @@ public sealed partial class ActionService : ObservableObject
         });
     }
 
+    // ---------- installing extensions ----------
+
+    /// <summary>Opens the "Install an extension" window, optionally with the extension and/or a profile already chosen,
+    /// then installs into the profiles picked there.</summary>
+    public async Task ShowInstallAsync(InstallSource? source = null, ProfileInfo? preselect = null)
+    {
+        // The window opens in demo mode too, to show it; installing is refused there like every action.
+        if ((!DemoMode.IsOn && RefuseIfBusy()) || CurrentScan() is not { } scan) return;
+        var model = new ViewModels.InstallViewModel(scan, source, preselect);
+        var window = new Views.InstallDialog(model) { Owner = System.Windows.Application.Current?.MainWindow };
+        if (window.ShowDialog() != true || model.Source is not { } chosen || model.SelectedProfiles.Count == 0) return;
+        await InstallAsync(chosen, model.SelectedProfiles);
+    }
+
+    /// <summary>What to offer for "Install in other profiles…" on an extension: its store listing, or for a developer
+    /// (unpacked) extension its folder; null when neither can be installed again.</summary>
+    public static InstallSource? SourceOf(ExtensionInfo extension)
+    {
+        if (extension.StoreUrl?.Contains("chromewebstore.google.com", StringComparison.OrdinalIgnoreCase) == true)
+            return ExtensionInstall.ParseStore(extension.Id, _ => extension.Name);
+        if (extension.Source == ExtensionSource.Developer && extension.FolderPath is { } folder && Directory.Exists(folder))
+        {
+            try { return ExtensionInstall.FromFolder(folder); }
+            catch (Exception e) when (e is InvalidDataException or IOException or UnauthorizedAccessException) { return null; }
+        }
+        return null;
+    }
+
+    /// <summary>Installs one extension in each target profile, one at a time, through the browser's own pages: the store page
+    /// for store extensions, "Load unpacked" (turning Developer mode on where needed) for folders.</summary>
+    public async Task InstallAsync(InstallSource source, IReadOnlyList<ProfileInfo> targets)
+    {
+        if (RefuseIfBusy()) return;
+        var where = string.Join("\n", targets.GroupBy(t => t.Browser.Name).Select(g => $"• {g.Key}: {string.Join(", ", g.Select(t => t.Name))}"));
+        var how = source.Kind == InstallSourceKind.Store
+            ? "The app opens its store page in each profile in turn, clicks “Add” and confirms the browser's question."
+            : "The app opens each profile's extensions page in turn, turns on Developer mode if it's off, clicks “Load unpacked” and picks a copy of the folder that it keeps in its own data folder. Developer mode has to stay on for the extension to keep working; turning it on is recorded in the Change log, where you can undo it.";
+        if (!await Dialogs.ConfirmAsync($"Install {source.Name} in {Profiles(targets.Count)}?",
+                $"{how}\n\n{where}\n\nProfiles that sync extensions may also add it on that account's other devices. Closed profiles open briefly.",
+                "Install")) return;
+
+        await RunAsync($"Installing {source.Name}…", async ct =>
+        {
+            var install = source;
+            if (source.Kind == InstallSourceKind.Folder)
+            {
+                BusyText = "Copying the extension folder…";
+                var copy = await Task.Run(() => ExtensionInstall.CopyToLibrary(source), ct);
+                install = source with { FolderPath = copy };
+            }
+
+            var problems = new List<string>();
+            var installed = new List<ProfileInfo>();
+            try
+            {
+                for (int i = 0; i < targets.Count; i++)
+                {
+                    var profile = targets[i];
+                    BusyText = $"Installing {source.Name} in {profile.Name} ({i + 1} of {targets.Count})…";
+                    AutomationResult result;
+                    if (install.Kind == InstallSourceKind.Store)
+                    {
+                        result = await BrowserAutomation.InstallFromStoreAsync(profile, install.StoreId!, ct);
+                    }
+                    else
+                    {
+                        var loaded = await BrowserAutomation.LoadUnpackedAsync(profile, install.FolderPath!, install.Name, ct);
+                        result = loaded.Result;
+                        if (loaded.TurnedOnDeveloperMode) RecordDeveloperMode(profile, install.Name);
+                    }
+                    if (result.Outcome == AutomationOutcome.Done)
+                    {
+                        installed.Add(profile);
+                        Record(new ChangeRecord
+                        {
+                            Kind = ChangeKind.ExtensionInstall,
+                            Title = $"Installed {source.Name}",
+                            Detail = $"{profile.Browser.Name} · {profile.Name}" + (install.Kind == InstallSourceKind.Folder ? $" · loaded from {install.FolderPath}" : " · from the Chrome Web Store"),
+                            BrowserId = profile.Browser.Id,
+                            ProfilePath = profile.Path,
+                            ExtensionId = install.StoreId,
+                            CanUndo = false, // remove it like any other extension
+                        });
+                    }
+                    else if (result.Outcome != AutomationOutcome.AlreadyInState)
+                    {
+                        problems.Add($"• {profile.Name} ({profile.Browser.Name}): {result.Message}");
+                    }
+                }
+            }
+            finally
+            {
+                // Also after "Stop": show what was installed so far.
+                foreach (var browser in installed.GroupBy(p => p.Browser.Id))
+                    RefreshUntil(browser.Key, scan => browser.All(p => scan.AllProfiles.FirstOrDefault(n => n.Browser.Id == p.Browser.Id && n.Path == p.Path) is { } now
+                        && now.Extensions.Any(e => install.Kind == InstallSourceKind.Store
+                            ? e.Id == install.StoreId
+                            : e.FolderPath != null && Core.Util.PathUtil.SamePath(e.FolderPath, install.FolderPath!))));
+            }
+
+            if (problems.Count == 0)
+                Notifier.Success("Installed", $"{source.Name} is in {Profiles(targets.Count)}.");
+            else
+                await Dialogs.InfoAsync($"Installed in {targets.Count - problems.Count} of {targets.Count} profiles",
+                    $"These still need a look:\n{string.Join("\n", problems)}");
+        });
+    }
+
+    void RecordDeveloperMode(ProfileInfo profile, string forExtension) => Record(new ChangeRecord
+    {
+        Kind = ChangeKind.DeveloperMode,
+        Title = $"Turned Developer mode on in {profile.Name}",
+        Detail = $"{profile.Browser.Name} · {profile.Name} · to load {forExtension}. Undo turns it off, which also turns off extensions loaded from folders.",
+        BrowserId = profile.Browser.Id,
+        ProfilePath = profile.Path,
+        Undo = { ["on"] = "False" },
+    });
+
     // ---------- doctor / clean-up ----------
 
     /// <summary>Optional tidy-up: keep Claude on in the chosen profile and turn it off in the others. Claude can connect to
@@ -503,6 +621,13 @@ public sealed partial class ActionService : ObservableObject
                         File.Delete(path);
                     }
                     undone = true;
+                    break;
+                case ChangeKind.DeveloperMode:
+                    var devProfile = CurrentScan()?.AllProfiles.FirstOrDefault(p => p.Path == record.ProfilePath && p.Browser.Id == record.BrowserId)
+                        ?? throw new InvalidOperationException("That profile isn't in the latest scan any more.");
+                    var devResult = await BrowserAutomation.SetDeveloperModeAsync(devProfile, false, ct);
+                    Report(devResult);
+                    undone = devResult.Succeeded;
                     break;
                 case ChangeKind.Sideload or ChangeKind.NativeHost:
                     undone = await RestoreRegistryKeyAsync(record);

@@ -25,6 +25,41 @@ if (args.Length == 3 && args[0] == "newprofile")
     return;
 }
 
+// bpm install <browser id> <profile folder> <store link or id | extension folder | .crx file>
+//                     installs one extension in one profile through the browser's own pages, like the app (a folder or .crx
+//                     is loaded from where it is; the app loads its own copy instead)
+if (args.Length == 4 && args[0] == "install")
+{
+    var profile = result.AllProfiles.FirstOrDefault(p => p.Browser.Id == args[1] && p.Key == args[2]);
+    if (profile == null)
+    {
+        Console.WriteLine($"Profile not found: {args[1]} / {args[2]}");
+        return;
+    }
+    var what = args[3];
+    if (what.EndsWith(".crx", StringComparison.OrdinalIgnoreCase) && File.Exists(what))
+        what = BPM.Core.Actions.ExtensionInstall.UnpackCrx(what, Path.Combine(Path.GetDirectoryName(Path.GetFullPath(what))!, Path.GetFileNameWithoutExtension(what)));
+    var source = Directory.Exists(what)
+        ? BPM.Core.Actions.ExtensionInstall.FromFolder(what)
+        : BPM.Core.Actions.ExtensionInstall.ParseStore(what) ?? throw new ArgumentException("Not a store link, extension ID, folder or .crx file: " + what);
+    if (BPM.Core.Actions.ExtensionInstall.CheckTarget(profile, source) is { } reason)
+    {
+        Console.WriteLine($"Skipped: {reason}");
+        return;
+    }
+    if (source.Kind == BPM.Core.Actions.InstallSourceKind.Store)
+    {
+        var outcome = await BPM.Core.Automation.BrowserAutomation.InstallFromStoreAsync(profile, source.StoreId!);
+        Console.WriteLine($"{outcome.Outcome}: {outcome.Message}");
+    }
+    else
+    {
+        var loaded = await BPM.Core.Automation.BrowserAutomation.LoadUnpackedAsync(profile, source.FolderPath!, source.Name);
+        Console.WriteLine($"{loaded.Result.Outcome}: {loaded.Result.Message}{(loaded.TurnedOnDeveloperMode ? " (turned Developer mode on)" : "")}");
+    }
+    return;
+}
+
 // bpm doctor          the Doctor page's checks (Claude in Chrome connection, browser links, policies)
 if (args.Length == 1 && args[0] == "doctor")
 {

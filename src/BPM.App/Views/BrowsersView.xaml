@@ -102,6 +102,9 @@
                                 <ui:Button Content="Open profile" Icon="{ui:SymbolIcon Open24}" Command="{Binding OpenCommand}" Margin="0,0,6,0" />
                                 <ui:Button Content="Extensions page" Icon="{ui:SymbolIcon PuzzlePiece24}" Command="{Binding ShowExtensionsPageCommand}" Margin="0,0,6,0" />
                                 <ui:Button Content="Desktop shortcut" Icon="{ui:SymbolIcon Desktop24}" Command="{Binding CreateShortcutCommand}" Margin="0,0,6,0" />
+                                <ui:Button Content="Install extension…" Icon="{ui:SymbolIcon ArrowDownload24}" Command="{Binding InstallExtensionCommand}" Margin="0,0,6,0"
+                                           Visibility="{Binding CanInstallExtensions, Converter={StaticResource BoolToVisible}}"
+                                           ToolTip="Install an extension from the Chrome Web Store, a folder or a .crx file in this profile (and others)" />
                                 <ui:Button Content="New profile…" Icon="{ui:SymbolIcon PersonAdd24}" Command="{Binding Browser.CreateProfileCommand}"
                                            Visibility="{Binding Browser.CanCreateProfiles, Converter={StaticResource BoolToVisible}}"
                                            ToolTip="Create another, empty profile in this browser and open it" />

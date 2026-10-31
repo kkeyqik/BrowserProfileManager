@@ -47,8 +47,12 @@
 
             <StackPanel Visibility="{Binding IsChromium, Converter={StaticResource BoolToVisible}}">
                 <TextBlock Text="In every profile" Style="{StaticResource Caption}" Margin="0,8,0,6" />
-                <ui:Button Content="Remove from every profile…" Icon="{ui:SymbolIcon Delete24}" Command="{Binding RemoveEverywhereCommand}" Margin="0,0,6,6"
-                           ToolTip="Uninstalls it from every profile that has it, one by one. Nothing is blocked: you can install it again any time." />
+                <WrapPanel>
+                    <ui:Button Content="Install in other profiles…" Icon="{ui:SymbolIcon ArrowDownload24}" Command="{Binding InstallElsewhereCommand}" Margin="0,0,6,6"
+                               ToolTip="Pick profiles in any browser and install it there too" />
+                    <ui:Button Content="Remove from every profile…" Icon="{ui:SymbolIcon Delete24}" Command="{Binding RemoveEverywhereCommand}" Margin="0,0,6,6"
+                               ToolTip="Uninstalls it from every profile that has it, one by one. Nothing is blocked: you can install it again any time." />
+                </WrapPanel>
             </StackPanel>
 
             <StackPanel Visibility="{Binding SupportsPolicies, Converter={StaticResource BoolToVisible}}">

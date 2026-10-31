@@ -158,6 +158,229 @@ public static class BrowserAutomation
             return new(AutomationOutcome.Done, "The browser reloaded its policies.");
         });
 
+    /// <summary>Installs a Chrome Web Store extension in one profile like a person would: opens its store page in a new
+    /// window of the profile, clicks "Add to …" and confirms the browser's "Add 'name'?" question (both seen on Chrome 156,
+    /// Oct 2026). Brave and others use the same store page; Edge first needs "Allow extensions from other stores".</summary>
+    public static Task<AutomationResult> InstallFromStoreAsync(ProfileInfo profile, string extensionId, CancellationToken ct = default) =>
+        RunSafe(async () =>
+        {
+            var browserName = profile.Browser.Name;
+            var url = $"https://chromewebstore.google.com/detail/{extensionId}";
+            var (window, problem) = await OpenInternalPageAsync(profile, url, ct);
+            if (window == null) return problem!;
+
+            // The page's main button says "Add to Chrome" (or "Add to Brave", …), or "Remove from …" when it's installed.
+            AutomationElement? button = null;
+            for (int i = 0; i < 60 && button == null; i++)
+            {
+                button = StoreButton(window);
+                if (button == null) await Task.Delay(250, ct);
+            }
+            if (button == null)
+                return new(AutomationOutcome.NeedsUser, $"The store page didn't show an “Add” button in {profile.Name}. Check the {browserName} window.");
+            if (button.Current.Name.StartsWith("Remove", StringComparison.OrdinalIgnoreCase))
+            {
+                CloseIfOnlyOurTab(window);
+                return new(AutomationOutcome.AlreadyInState, $"It's already installed in {profile.Name}.");
+            }
+            if (!button.Current.IsEnabled)
+                return new(AutomationOutcome.NeedsUser, profile.Browser.Id.StartsWith("edge", StringComparison.Ordinal)
+                    ? $"Edge needs permission first: click “Allow extensions from other stores” at the top of the page in {profile.Name}, then try again."
+                    : $"The store's “Add” button is greyed out in {profile.Name}. Check the {browserName} window.");
+            ((InvokePattern)button.GetCurrentPattern(InvokePattern.Pattern)).Invoke();
+
+            // Confirm only the browser's own "Add 'name'?" question, after the moment it ignores presses.
+            var questionCondition = new AndCondition(
+                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Window),
+                new PropertyCondition(AutomationElement.ClassNameProperty, "RootView"));
+            var question = await WaitForAsync(window, questionCondition, ct);
+            if (question == null || !question.Current.Name.StartsWith("Add ", StringComparison.OrdinalIgnoreCase))
+                return new(AutomationOutcome.NeedsUser, $"Confirm the install in the {browserName} window ({profile.Name}).");
+            var name = NameInQuotes(question.Current.Name) ?? extensionId;
+            if (!await PressDialogButtonAsync(window, question, questionCondition, "Add extension", ct))
+                return new(AutomationOutcome.NeedsUser, $"Press “Add extension” in the {browserName} window to finish.");
+
+            // Installed once the page's button turns into "Remove from …" (the download can take a few seconds).
+            for (int i = 0; i < 60; i++)
+            {
+                await Task.Delay(250, ct);
+                if (StoreButton(window)?.Current.Name.StartsWith("Remove", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    CloseIfOnlyOurTab(window);
+                    return new(AutomationOutcome.Done, $"Installed {name} in {profile.Name}.");
+                }
+            }
+            return new(AutomationOutcome.Failed, $"{browserName} didn't finish installing {name} in {profile.Name}. Check its window.");
+        });
+
+    static AutomationElement? StoreButton(AutomationElement window)
+    {
+        foreach (AutomationElement b in window.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button)))
+        {
+            var n = b.Current.Name;
+            if (n.StartsWith("Add to ", StringComparison.OrdinalIgnoreCase) || n.StartsWith("Remove from ", StringComparison.OrdinalIgnoreCase)) return b;
+        }
+        return null;
+    }
+
+    static string? NameInQuotes(string text)
+    {
+        int start = text.IndexOfAny(['\'', '“', '"']), end = text.LastIndexOfAny(['\'', '”', '"']);
+        return start >= 0 && end > start + 1 ? text[(start + 1)..end] : null;
+    }
+
+    /// <summary>Presses a button of a browser question box, waiting out the moment the browser ignores presses and checking
+    /// the box really closed; true when it did.</summary>
+    static async Task<bool> PressDialogButtonAsync(AutomationElement window, AutomationElement question, Condition questionCondition, string buttonName, CancellationToken ct)
+    {
+        for (int attempt = 0; attempt < 4; attempt++)
+        {
+            await Task.Delay(attempt == 0 ? 800 : 1000, ct);
+            var button = question.FindFirst(TreeScope.Descendants, new AndCondition(
+                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button),
+                new PropertyCondition(AutomationElement.NameProperty, buttonName)));
+            if (button == null) return false;
+            ((InvokePattern)button.GetCurrentPattern(InvokePattern.Pattern)).Invoke();
+            for (int i = 0; i < 10; i++)
+            {
+                await Task.Delay(150, ct);
+                if (window.FindFirst(TreeScope.Descendants, questionCondition) == null) return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>Result of loading an extension folder: what happened, and whether the app had to turn Developer mode on.</summary>
+    public sealed record LoadUnpackedResult(AutomationResult Result, bool TurnedOnDeveloperMode);
+
+    /// <summary>Loads an extension folder in one profile: opens its extensions page, turns Developer mode on if it's off,
+    /// clicks "Load unpacked" and picks the folder in Windows' folder picker, then checks the extension appeared.</summary>
+    public static Task<LoadUnpackedResult> LoadUnpackedAsync(ProfileInfo profile, string folder, string expectedName, CancellationToken ct = default) =>
+        Task.Run(async () =>
+        {
+            bool turnedOn = false;
+            try
+            {
+                var browser = profile.Browser;
+                var (window, problem) = await OpenInternalPageAsync(profile, browser.Definition.ExtensionsPageUrl, ct);
+                if (window == null) return new LoadUnpackedResult(problem!, false);
+
+                var dev = await DeveloperModeSwitchAsync(window, ct);
+                if (dev == null)
+                    return new LoadUnpackedResult(new(AutomationOutcome.NeedsUser, $"The Developer mode switch wasn't found on {browser.Name}'s extensions page. Turn it on and use “Load unpacked” yourself."), false);
+                if (!dev.Current.IsEnabled)
+                    return new LoadUnpackedResult(new(AutomationOutcome.Blocked, $"Developer mode is blocked by a policy on this PC, so folders can't be loaded in {profile.Name}."), false);
+                var devPattern = (TogglePattern)dev.GetCurrentPattern(TogglePattern.Pattern);
+                if (!IsOn(devPattern))
+                {
+                    devPattern.Toggle();
+                    for (int i = 0; i < 20 && !IsOn(devPattern); i++) await Task.Delay(150, ct);
+                    if (!IsOn(devPattern))
+                        return new LoadUnpackedResult(new(AutomationOutcome.Failed, $"Developer mode didn't turn on in {profile.Name}."), false);
+                    turnedOn = true;
+                }
+
+                var load = await WaitForAsync(window, new OrCondition(
+                    new PropertyCondition(AutomationElement.AutomationIdProperty, "loadUnpacked"),
+                    new PropertyCondition(AutomationElement.NameProperty, "Load unpacked")), ct);
+                if (load == null)
+                    return new LoadUnpackedResult(new(AutomationOutcome.NeedsUser, $"“Load unpacked” wasn't found in {profile.Name}. Click it yourself and pick {folder}."), turnedOn);
+
+                var exeDir = Path.GetDirectoryName(browser.ExePath!)!;
+                var dialogsBefore = BrowserWindows(exeDir, FileDialogClass).ToHashSet();
+                // The click opens a modal folder picker, so don't wait on it.
+                _ = Task.Run(() => { try { ((InvokePattern)load.GetCurrentPattern(InvokePattern.Pattern)).Invoke(); } catch (Exception) { } });
+
+                IntPtr picker = IntPtr.Zero;
+                for (int i = 0; i < 40 && picker == IntPtr.Zero; i++)
+                {
+                    await Task.Delay(250, ct);
+                    picker = BrowserWindows(exeDir, FileDialogClass).FirstOrDefault(h => !dialogsBefore.Contains(h));
+                }
+                if (picker == IntPtr.Zero)
+                    return new LoadUnpackedResult(new(AutomationOutcome.NeedsUser, $"The folder picker didn't open in {profile.Name}. Use “Load unpacked” and pick {folder}."), turnedOn);
+                if (!await PickFolderAsync(AutomationElement.FromHandle(picker), folder, ct))
+                    return new LoadUnpackedResult(new(AutomationOutcome.NeedsUser, $"Pick {folder} in the folder picker that opened."), turnedOn);
+
+                // Loaded once its card shows the extension's name; a load error shows a message instead.
+                var nameShown = new AndCondition(
+                    new PropertyCondition(AutomationElement.AutomationIdProperty, "name"),
+                    new PropertyCondition(AutomationElement.NameProperty, expectedName));
+                for (int i = 0; i < 40; i++)
+                {
+                    await Task.Delay(250, ct);
+                    if (window.FindFirst(TreeScope.Descendants, nameShown) != null)
+                    {
+                        CloseIfOnlyOurTab(window);
+                        return new LoadUnpackedResult(new(AutomationOutcome.Done, $"Loaded {expectedName} in {profile.Name}."), turnedOn);
+                    }
+                    if (window.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, "Failed to load extension")) != null)
+                        return new LoadUnpackedResult(new(AutomationOutcome.Failed, $"{browser.Name} couldn't load the extension in {profile.Name}; its window shows why."), turnedOn);
+                }
+                return new LoadUnpackedResult(new(AutomationOutcome.Failed, $"{expectedName} didn't appear in {profile.Name}. Check the {browser.Name} window."), turnedOn);
+            }
+            catch (Exception e) when (e is ElementNotAvailableException or ElementNotEnabledException or InvalidOperationException
+                                           or COMException or ArgumentException)
+            {
+                return new LoadUnpackedResult(new(AutomationOutcome.Failed, "The browser window changed while the app was working: " + e.Message), turnedOn);
+            }
+        });
+
+    /// <summary>Turns a profile's Developer mode on or off (Undo after loading folders).</summary>
+    public static Task<AutomationResult> SetDeveloperModeAsync(ProfileInfo profile, bool on, CancellationToken ct = default) =>
+        RunSafe(async () =>
+        {
+            var (window, problem) = await OpenInternalPageAsync(profile, profile.Browser.Definition.ExtensionsPageUrl, ct);
+            if (window == null) return problem!;
+            var dev = await DeveloperModeSwitchAsync(window, ct);
+            if (dev == null) return new(AutomationOutcome.NeedsUser, $"The Developer mode switch wasn't found. Change it yourself in {profile.Name}.");
+            if (!dev.Current.IsEnabled) return new(AutomationOutcome.Blocked, "Developer mode is controlled by a policy on this PC.");
+            var pattern = (TogglePattern)dev.GetCurrentPattern(TogglePattern.Pattern);
+            if (IsOn(pattern) != on)
+            {
+                pattern.Toggle();
+                for (int i = 0; i < 20 && IsOn(pattern) != on; i++) await Task.Delay(150, ct);
+                if (IsOn(pattern) != on) return new(AutomationOutcome.Failed, "Developer mode didn't change. Check the browser window.");
+            }
+            CloseIfOnlyOurTab(window);
+            return new(AutomationOutcome.Done, $"Developer mode is {(on ? "on" : "off")} in {profile.Name}.");
+        });
+
+    const string FileDialogClass = "#32770";
+
+    /// <summary>The page's Developer mode switch (id "devMode"). A text label with the same name sits next to it, so the
+    /// name alone only counts on a toggle button.</summary>
+    static async Task<AutomationElement?> DeveloperModeSwitchAsync(AutomationElement window, CancellationToken ct) =>
+        await WaitForAsync(window, new OrCondition(
+            new PropertyCondition(AutomationElement.AutomationIdProperty, "devMode"),
+            new AndCondition(
+                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button),
+                new PropertyCondition(AutomationElement.NameProperty, "Developer mode"))), ct) is { } found
+            && found.TryGetCurrentPattern(TogglePattern.Pattern, out _) ? found : null;
+
+    /// <summary>Types the folder into Windows' folder picker ("Folder:" box, id 1152) and presses "Select Folder" (id 1).</summary>
+    static async Task<bool> PickFolderAsync(AutomationElement picker, string folder, CancellationToken ct)
+    {
+        var box = picker.FindFirst(TreeScope.Descendants, new AndCondition(
+            new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Edit),
+            new PropertyCondition(AutomationElement.AutomationIdProperty, "1152")))
+            ?? picker.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Edit));
+        var select = picker.FindFirst(TreeScope.Descendants, new AndCondition(
+            new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button),
+            new PropertyCondition(AutomationElement.AutomationIdProperty, "1")));
+        if (box == null || select == null || !box.TryGetCurrentPattern(ValuePattern.Pattern, out var value)) return false;
+        ((ValuePattern)value).SetValue(folder);
+        await Task.Delay(300, ct);
+        ((InvokePattern)select.GetCurrentPattern(InvokePattern.Pattern)).Invoke();
+        for (int i = 0; i < 20; i++)
+        {
+            await Task.Delay(200, ct);
+            try { if (picker.Current.ProcessId == 0) return true; }
+            catch (ElementNotAvailableException) { return true; } // the picker closed: folder chosen
+        }
+        return false;
+    }
+
     static Task<AutomationResult> RunSafe(Func<Task<AutomationResult>> work) => Task.Run(async () =>
     {
         try
@@ -403,8 +626,8 @@ public static class BrowserAutomation
         catch (Exception e) when (e is ElementNotAvailableException or InvalidOperationException) { }
     }
 
-    /// <summary>Visible top-level browser windows whose process runs from <paramref name="exeDir"/>.</summary>
-    static List<IntPtr> BrowserWindows(string exeDir)
+    /// <summary>Visible top-level windows of the given class (browser windows by default) whose process runs from <paramref name="exeDir"/>.</summary>
+    static List<IntPtr> BrowserWindows(string exeDir, string windowClass = WindowClass)
     {
         var result = new List<IntPtr>();
         var imageByPid = new Dictionary<uint, string?>();
@@ -413,7 +636,7 @@ public static class BrowserAutomation
             if (!IsWindowVisible(hwnd)) return true;
             var cls = new StringBuilder(64);
             GetClassName(hwnd, cls, cls.Capacity);
-            if (cls.ToString() != WindowClass) return true;
+            if (cls.ToString() != windowClass) return true;
             GetWindowThreadProcessId(hwnd, out var pid);
             if (!imageByPid.TryGetValue(pid, out var image)) imageByPid[pid] = image = ProcessUtil.GetImagePath((int)pid);
             if (image != null && PathUtil.IsUnder(image, exeDir)) result.Add(hwnd);

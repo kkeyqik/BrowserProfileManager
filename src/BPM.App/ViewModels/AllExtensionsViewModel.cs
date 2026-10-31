@@ -44,6 +44,9 @@ public sealed partial class AllExtensionsViewModel : ObservableObject
     }
 
     [RelayCommand]
+    Task InstallExtension() => ActionService.Instance.ShowInstallAsync();
+
+    [RelayCommand]
     Task RemoveEverywhere() => SelectedGroup?.Installs.FirstOrDefault() is { } copy
         ? ActionService.Instance.RemoveEverywhereAsync(copy.Info)
         : Task.CompletedTask;

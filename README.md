@@ -33,8 +33,9 @@
     </td>
     <td width="50%" valign="top">
       <h3>Manage extensions anywhere</h3>
-      Turn an extension on or off, or remove it, in one profile or in every profile at once. Block one in every
-      profile of a browser, reset an extension's data, or reinstall it from its store.
+      Install an extension in the profiles you pick, from the Chrome Web Store, a folder or a <code>.crx</code> file.
+      Turn it on or off, or remove it, in one profile or in every profile at once. Block one in every profile of a
+      browser, or reset an extension's data.
     </td>
   </tr>
   <tr>
@@ -85,15 +86,18 @@
 
 ## Supported browsers
 
-| Browser | Profiles and extensions | On / off and remove | Block in every profile | New profile |
-|---|:---:|:---:|:---:|:---:|
-| Google Chrome (Stable, Beta, Dev, Canary) | ✓ | ✓ | ✓ | ✓ |
-| Microsoft Edge (all channels) | ✓ | ✓ | ✓ | ✓ |
-| Brave | ✓ | ✓ | ✓ | ✓ |
-| Opera, Opera GX | ✓ | ✓ | Opera | ✓ |
-| Vivaldi, Chromium, Comet, Cốc Cốc, Yandex, Thorium | ✓ | ✓ | Chromium, Comet | ✓ |
-| Arc | ✓ | in the browser | — | — |
-| Firefox, LibreWolf, Waterfox, Zen, Floorp | ✓ | in the browser | — | — |
+| Browser | Profiles and extensions | Install | On / off and remove | Block in every profile | New profile |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Google Chrome (Stable, Beta, Dev, Canary) | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Microsoft Edge (all channels) | ✓ | ✓¹ | ✓ | ✓ | ✓ |
+| Brave | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Opera, Opera GX | ✓ | folders² | ✓ | Opera | ✓ |
+| Vivaldi, Chromium, Comet, Cốc Cốc, Yandex, Thorium | ✓ | ✓ | ✓ | Chromium, Comet | ✓ |
+| Arc | ✓ | in the browser | in the browser | — | — |
+| Firefox, LibreWolf, Waterfox, Zen, Floorp | ✓ | in the browser | in the browser | — | — |
+
+<sub>¹ Chrome Web Store installs in Edge need "Allow extensions from other stores" clicked once. ² Opera installs
+from the Chrome Web Store only with its own helper add-on; extension folders work.</sub>
 
 ## Install
 

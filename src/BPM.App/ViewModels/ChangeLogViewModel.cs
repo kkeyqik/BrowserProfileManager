@@ -57,6 +57,8 @@ public sealed class ChangeRow(ChangeRecord record)
         ChangeKind.ExtensionData => SymbolRegular.ArrowReset24,
         ChangeKind.Shortcut => SymbolRegular.Desktop24,
         ChangeKind.ProfileCreated => SymbolRegular.PersonAdd24,
+        ChangeKind.ExtensionInstall => SymbolRegular.ArrowDownload24,
+        ChangeKind.DeveloperMode => SymbolRegular.Code24,
         _ => SymbolRegular.Wrench24,
     };
 }

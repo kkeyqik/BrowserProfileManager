@@ -1,0 +1,125 @@
+<ui:FluentWindow x:Class="BPM.App.Views.InstallDialog"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 xmlns:vm="clr-namespace:BPM.App.ViewModels"
+                 mc:Ignorable="d"
+                 d:DataContext="{d:DesignInstance vm:InstallViewModel, IsDesignTimeCreatable=False}"
+                 Title="Install an extension" Width="780" Height="780" MinWidth="620" MinHeight="560"
+                 WindowStartupLocation="CenterOwner" ExtendsContentIntoTitleBar="True" WindowBackdropType="Mica"
+                 ShowInTaskbar="False" ResizeMode="CanResize">
+    <ui:FluentWindow.Resources>
+        <!-- Profiles listed under their browser's name -->
+        <CollectionViewSource x:Key="GroupedTargets" Source="{Binding Targets}">
+            <CollectionViewSource.GroupDescriptions>
+                <PropertyGroupDescription PropertyName="BrowserName" />
+            </CollectionViewSource.GroupDescriptions>
+        </CollectionViewSource>
+    </ui:FluentWindow.Resources>
+
+    <Grid Background="{DynamicResource AppBackdropBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar Grid.Row="0" Title="Install an extension" ShowMinimize="False" ShowMaximize="False" />
+
+        <!-- What to install -->
+        <StackPanel Grid.Row="1" Margin="24,4,24,0">
+            <TextBlock Text="What to install" Style="{StaticResource SectionTitle}" Margin="0,0,0,8" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <ui:TextBox PlaceholderText="Chrome Web Store link or extension ID" Icon="{ui:SymbolIcon Link24}" ClearButtonEnabled="True"
+                            Text="{Binding SourceText, UpdateSourceTrigger=PropertyChanged}" />
+                <ui:Button Grid.Column="1" Content="Folder…" Icon="{ui:SymbolIcon FolderOpen24}" Margin="8,0,0,0" Command="{Binding ChooseFolderCommand}"
+                           ToolTip="An unpacked extension: the folder that contains manifest.json" />
+                <ui:Button Grid.Column="2" Content=".crx file…" Icon="{ui:SymbolIcon PuzzlePiece24}" Margin="8,0,0,0" Command="{Binding ChooseCrxCommand}"
+                           ToolTip="A packed extension file; the app unpacks it and loads it as a folder" />
+            </Grid>
+            <TextBlock Text="{Binding SourceStatus}" Margin="2,8,0,0">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource Body}">
+                        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding SourceIsError}" Value="True">
+                                <Setter Property="Foreground" Value="#E0A43A" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+
+            <Border Style="{StaticResource Panel}" Padding="14,10" Margin="0,12,0,0"
+                    Visibility="{Binding IsFolder, Converter={StaticResource BoolToVisible}}">
+                <StackPanel Orientation="Horizontal">
+                    <ui:SymbolIcon Symbol="Info24" FontSize="18" Foreground="{DynamicResource AccentFillColorDefaultBrush}" VerticalAlignment="Top" />
+                    <TextBlock Style="{StaticResource Body}" Margin="10,0,0,0" MaxWidth="640"
+                               Text="Folders load through Developer mode: the app turns it on where it's off (you can undo that from the Change log) and loads its own copy of the folder, so moving the original won't break it. Loaded extensions don't update by themselves." />
+                </StackPanel>
+            </Border>
+
+            <DockPanel Margin="0,18,0,8">
+                <WrapPanel DockPanel.Dock="Right">
+                    <ui:Button Content="All Chrome profiles" Command="{Binding SelectCommand}" CommandParameter="chrome" Margin="0,0,6,0" />
+                    <ui:Button Content="All profiles" Command="{Binding SelectCommand}" CommandParameter="all" Margin="0,0,6,0" />
+                    <ui:Button Content="Clear" Command="{Binding SelectCommand}" CommandParameter="none" />
+                </WrapPanel>
+                <TextBlock Text="Where" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center" />
+            </DockPanel>
+        </StackPanel>
+
+        <!-- Profiles, grouped by browser -->
+        <Border Grid.Row="2" Style="{StaticResource Panel}" Margin="24,0,24,0">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,4,12,8">
+                <ItemsControl ItemsSource="{Binding Source={StaticResource GroupedTargets}}">
+                    <ItemsControl.GroupStyle>
+                        <GroupStyle>
+                            <GroupStyle.HeaderTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Style="{StaticResource Body}" Margin="2,10,0,4" />
+                                </DataTemplate>
+                            </GroupStyle.HeaderTemplate>
+                        </GroupStyle>
+                    </ItemsControl.GroupStyle>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:InstallTargetRow}">
+                            <Grid Margin="0,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <CheckBox IsChecked="{Binding IsChecked}" IsEnabled="{Binding CanInstall}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Name}" Style="{StaticResource Body}" />
+                                        <TextBlock Text="{Binding Email}" Style="{StaticResource Caption}" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                   Visibility="{Binding Email, Converter={StaticResource EmptyToCollapsed}}" />
+                                    </StackPanel>
+                                </CheckBox>
+                                <TextBlock Grid.Column="1" Text="{Binding Reason}" Style="{StaticResource Caption}" VerticalAlignment="Center" Margin="12,0,0,0"
+                                           Visibility="{Binding Reason, Converter={StaticResource EmptyToCollapsed}}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Footer -->
+        <DockPanel Grid.Row="3" Margin="24,14,24,20" LastChildFill="False">
+            <TextBlock DockPanel.Dock="Left" Style="{StaticResource Caption}" VerticalAlignment="Center" MaxWidth="400" TextWrapping="Wrap"
+                       Text="Each profile opens for a moment while the app installs. Don't type or click until it's done." />
+            <ui:Button DockPanel.Dock="Right" Content="{Binding InstallText}" Appearance="Primary" Icon="{ui:SymbolIcon ArrowDownload24}"
+                       IsEnabled="{Binding CanInstall}" Click="Install_Click" Margin="8,0,0,0" />
+            <ui:Button DockPanel.Dock="Right" Content="Cancel" IsCancel="True" />
+        </DockPanel>
+    </Grid>
+</ui:FluentWindow>

@@ -92,6 +92,17 @@ If a profile syncs its extensions to a Google or Microsoft account, removing an 
 
 Nothing is blocked, and no administrator permission is needed. You can install the extension again from its store whenever you like. Closed profiles open for a moment while the app works. If a profile is set to reopen its last tabs, those windows stay open.
 
+### Installing an extension
+
+- **Install in other profiles...** (in the details panel) installs this extension in profiles you pick, in any browser.
+- **Install extension...** (on a profile) and **Install...** (on the **All extensions** page) let you choose what to install:
+  - **A Chrome Web Store link or extension ID**: the app opens the store page in each profile, clicks **Add** and confirms the browser's question.
+  - **An extension folder** (the folder with `manifest.json` in it) or **a `.crx` file**: the app loads it through **Load unpacked** on each profile's extensions page. It turns on **Developer mode** where it's off (recorded in the Change log, where **Undo** turns it off again) and loads its own copy of the folder, so moving the original doesn't break it. Developer mode has to stay on, and loaded extensions don't update by themselves.
+
+Tick the profiles, grouped by browser, or use **All Chrome profiles** or **All profiles**. Profiles that can't take the extension say why, for example "Already installed". Firefox installs only from its own add-ons site, and Arc can't be opened by other programs, so install in those yourself.
+
+In **Edge**, the Chrome Web Store needs one-time permission: click **Allow extensions from other stores** at the top of the store page, then try again.
+
 ### Block in all <browser> profiles (asks for administrator permission)
 
 - **Block everywhere...** keeps the extension installed but turns it off in all profiles, and stops anyone turning it back on.

@@ -4,7 +4,7 @@ using BPM.Core.Util;
 
 namespace BPM.Core.Journal;
 
-public enum ChangeKind { ExtensionSwitch, ExtensionRemoval, Policy, ExtensionData, Shortcut, Sideload, NativeHost, ProfileCreated }
+public enum ChangeKind { ExtensionSwitch, ExtensionRemoval, Policy, ExtensionData, Shortcut, Sideload, NativeHost, ProfileCreated, ExtensionInstall, DeveloperMode }
 
 /// <summary>One change the app made, with what's needed to undo it.</summary>
 public sealed class ChangeRecord
