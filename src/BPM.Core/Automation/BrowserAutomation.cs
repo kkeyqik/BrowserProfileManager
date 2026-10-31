@@ -75,21 +75,28 @@ public static class BrowserAutomation
             if (window == null) return problem!;
             var (_, notThere) = await FindExtensionSwitchAsync(window, extension, ct);
             if (notThere != null) return notThere;
+            // Edge can leave a stale card with the name in its list after removing, but its details view (the only place
+            // with an "Extension on/off" switch) closes once the extension is gone (Edge 151, Nov 2026).
+            bool edgeDetailsShown = window.FindFirst(TreeScope.Descendants, EdgeDetailsSwitch) != null;
 
-            var remove = await WaitForAsync(window, new AndCondition(
-                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Hyperlink),
-                new PropertyCondition(AutomationElement.NameProperty, "Remove extension")), ct);
+            // Chrome: a "Remove extension" link. Edge: a "Remove" button (its details view has just one).
+            var remove = await WaitForAsync(window, new OrCondition(
+                new AndCondition(
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Hyperlink),
+                    new PropertyCondition(AutomationElement.NameProperty, "Remove extension")),
+                new AndCondition(
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button),
+                    new PropertyCondition(AutomationElement.NameProperty, "Remove"))), ct);
             if (remove == null)
                 return new(AutomationOutcome.NeedsUser, $"There's no “Remove extension” on its page in {extension.Profile.Name} (it may be installed by policy). Check the {browserName} window.");
             ((InvokePattern)remove.GetCurrentPattern(InvokePattern.Pattern)).Invoke();
 
             // Confirm only a question that names this extension (a small "Remove 'name'?" box inside the window).
-            var questionCondition = new AndCondition(
-                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Window),
-                new PropertyCondition(AutomationElement.ClassNameProperty, "RootView"));
-            var question = await WaitForAsync(window, questionCondition, ct);
-            if (question == null || !question.Current.Name.Contains(extension.Name, StringComparison.CurrentCultureIgnoreCase))
+            var question = await WaitForQuestionAsync(window,
+                name => name.Contains(extension.Name, StringComparison.CurrentCultureIgnoreCase), ct);
+            if (question == null)
                 return new(AutomationOutcome.NeedsUser, $"Confirm the removal in the {browserName} window.");
+            var questionCondition = QuestionNamed(question.Current.Name);
 
             // Chrome ignores a press that comes the instant the box appears (protection against accidental clicks), and
             // says nothing. So wait a moment, press Remove, and check the box really closed; try again if not.
@@ -113,13 +120,12 @@ public static class BrowserAutomation
 
             // Removed once the page no longer shows the extension's name. After removing, the browser goes back to the full
             // list, which still has switches for the other extensions, so "no switch" isn't a sign (seen Oct 2026).
-            var nameShown = new AndCondition(
-                new PropertyCondition(AutomationElement.AutomationIdProperty, "name"),
-                new PropertyCondition(AutomationElement.NameProperty, extension.Name));
+            var nameShown = NameShown(extension.Name);
             for (int i = 0; i < 40; i++)
             {
                 await Task.Delay(250, ct);
-                if (window.FindFirst(TreeScope.Descendants, nameShown) == null)
+                if (window.FindFirst(TreeScope.Descendants, nameShown) == null
+                    || edgeDetailsShown && window.FindFirst(TreeScope.Descendants, EdgeDetailsSwitch) == null)
                 {
                     CloseIfOnlyOurTab(window);
                     return new(AutomationOutcome.Done, $"Removed {extension.Name} from {extension.Profile.Name}.");
@@ -160,7 +166,8 @@ public static class BrowserAutomation
 
     /// <summary>Installs a Chrome Web Store extension in one profile like a person would: opens its store page in a new
     /// window of the profile, clicks "Add to …" and confirms the browser's "Add 'name'?" question (both seen on Chrome 156,
-    /// Oct 2026). Brave and others use the same store page; Edge first needs "Allow extensions from other stores".</summary>
+    /// Oct 2026). Brave and others use the same store page; in Edge its button says "Get" (Edge 151, Nov 2026), and Edge
+    /// may first ask for "Allow extensions from other stores".</summary>
     public static Task<AutomationResult> InstallFromStoreAsync(ProfileInfo profile, string extensionId, CancellationToken ct = default) =>
         RunSafe(async () =>
         {
@@ -170,11 +177,13 @@ public static class BrowserAutomation
             if (window == null) return problem!;
 
             // The page's main button says "Add to Chrome" (or "Add to Brave", …), or "Remove from …" when it's installed.
+            // The page shows its button greyed out for a moment while it loads, so wait for it to be usable.
             AutomationElement? button = null;
-            for (int i = 0; i < 60 && button == null; i++)
+            for (int i = 0; i < 60; i++)
             {
                 button = StoreButton(window);
-                if (button == null) await Task.Delay(250, ct);
+                if (button != null && button.Current.IsEnabled) break;
+                await Task.Delay(250, ct);
             }
             if (button == null)
                 return new(AutomationOutcome.NeedsUser, $"The store page didn't show an “Add” button in {profile.Name}. Check the {browserName} window.");
@@ -190,12 +199,13 @@ public static class BrowserAutomation
             ((InvokePattern)button.GetCurrentPattern(InvokePattern.Pattern)).Invoke();
 
             // Confirm only the browser's own "Add 'name'?" question, after the moment it ignores presses.
-            var questionCondition = new AndCondition(
-                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Window),
-                new PropertyCondition(AutomationElement.ClassNameProperty, "RootView"));
-            var question = await WaitForAsync(window, questionCondition, ct);
-            if (question == null || !question.Current.Name.StartsWith("Add ", StringComparison.OrdinalIgnoreCase))
+            // Chrome asks "Add 'name'?"; Brave 1.98.62 says "Brave does not review extensions … Install 'name' only if you
+            // trust the developer." Either way the box's "Add extension" button is what gets pressed.
+            var question = await WaitForQuestionAsync(window, name => name.StartsWith("Add ", StringComparison.OrdinalIgnoreCase)
+                || name.Contains("Install ", StringComparison.OrdinalIgnoreCase), ct);
+            if (question == null)
                 return new(AutomationOutcome.NeedsUser, $"Confirm the install in the {browserName} window ({profile.Name}).");
+            var questionCondition = QuestionNamed(question.Current.Name);
             var name = NameInQuotes(question.Current.Name) ?? extensionId;
             if (!await PressDialogButtonAsync(window, question, questionCondition, "Add extension", ct))
                 return new(AutomationOutcome.NeedsUser, $"Press “Add extension” in the {browserName} window to finish.");
@@ -218,7 +228,34 @@ public static class BrowserAutomation
         foreach (AutomationElement b in window.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button)))
         {
             var n = b.Current.Name;
-            if (n.StartsWith("Add to ", StringComparison.OrdinalIgnoreCase) || n.StartsWith("Remove from ", StringComparison.OrdinalIgnoreCase)) return b;
+            // In Edge the store page says just "Get", and "Remove" once installed (Edge 151, Nov 2026).
+            if (n.StartsWith("Add to ", StringComparison.OrdinalIgnoreCase) || n.StartsWith("Remove from ", StringComparison.OrdinalIgnoreCase)
+                || n.Equals("Get", StringComparison.OrdinalIgnoreCase) || n.Equals("Remove", StringComparison.OrdinalIgnoreCase)) return b;
+        }
+        return null;
+    }
+
+    /// <summary>A browser question box ("Remove 'name'?", "Add 'name'?"): a RootView window in Chrome and Brave, a
+    /// Chrome_WidgetWin_1 pane named with the question in Edge (Edge 151, Nov 2026).</summary>
+    static readonly Condition QuestionBox = new OrCondition(
+        new AndCondition(
+            new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Window),
+            new PropertyCondition(AutomationElement.ClassNameProperty, "RootView")),
+        new AndCondition(
+            new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Pane),
+            new PropertyCondition(AutomationElement.ClassNameProperty, WindowClass)));
+
+    static Condition QuestionNamed(string question) =>
+        new AndCondition(QuestionBox, new PropertyCondition(AutomationElement.NameProperty, question));
+
+    /// <summary>Waits for a question box in the window whose question passes <paramref name="matches"/>.</summary>
+    static async Task<AutomationElement?> WaitForQuestionAsync(AutomationElement window, Func<string, bool> matches, CancellationToken ct)
+    {
+        for (int i = 0; i < 40; i++)
+        {
+            foreach (AutomationElement box in window.FindAll(TreeScope.Descendants, QuestionBox))
+                if (box.Current.Name is { Length: > 0 } name && matches(name)) return box;
+            await Task.Delay(250, ct);
         }
         return null;
     }
@@ -265,7 +302,7 @@ public static class BrowserAutomation
                 var (window, problem) = await OpenInternalPageAsync(profile, browser.Definition.ExtensionsPageUrl, ct);
                 if (window == null) return new LoadUnpackedResult(problem!, false);
 
-                var dev = await DeveloperModeSwitchAsync(window, ct);
+                var (dev, openedMenu) = await DeveloperModeSwitchAndMenuAsync(window, ct);
                 if (dev == null)
                     return new LoadUnpackedResult(new(AutomationOutcome.NeedsUser, $"The Developer mode switch wasn't found on {browser.Name}'s extensions page. Turn it on and use “Load unpacked” yourself."), false);
                 if (!dev.Current.IsEnabled)
@@ -279,6 +316,7 @@ public static class BrowserAutomation
                         return new LoadUnpackedResult(new(AutomationOutcome.Failed, $"Developer mode didn't turn on in {profile.Name}."), false);
                     turnedOn = true;
                 }
+                if (openedMenu != null) await CloseEdgeMenuAsync(window, ct);
 
                 var load = await WaitForAsync(window, new OrCondition(
                     new PropertyCondition(AutomationElement.AutomationIdProperty, "loadUnpacked"),
@@ -303,9 +341,7 @@ public static class BrowserAutomation
                     return new LoadUnpackedResult(new(AutomationOutcome.NeedsUser, $"Pick {folder} in the folder picker that opened."), turnedOn);
 
                 // Loaded once its card shows the extension's name; a load error shows a message instead.
-                var nameShown = new AndCondition(
-                    new PropertyCondition(AutomationElement.AutomationIdProperty, "name"),
-                    new PropertyCondition(AutomationElement.NameProperty, expectedName));
+                var nameShown = NameShown(expectedName);
                 for (int i = 0; i < 40; i++)
                 {
                     await Task.Delay(250, ct);
@@ -314,7 +350,10 @@ public static class BrowserAutomation
                         CloseIfOnlyOurTab(window);
                         return new LoadUnpackedResult(new(AutomationOutcome.Done, $"Loaded {expectedName} in {profile.Name}."), turnedOn);
                     }
-                    if (window.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, "Failed to load extension")) != null)
+                    // Edge keeps this box in its page, hidden, all the time, so only a visible one counts.
+                    if (window.FindFirst(TreeScope.Descendants, new AndCondition(
+                            new PropertyCondition(AutomationElement.NameProperty, "Failed to load extension"),
+                            new PropertyCondition(AutomationElement.IsOffscreenProperty, false))) != null)
                         return new LoadUnpackedResult(new(AutomationOutcome.Failed, $"{browser.Name} couldn't load the extension in {profile.Name}; its window shows why."), turnedOn);
                 }
                 return new LoadUnpackedResult(new(AutomationOutcome.Failed, $"{expectedName} didn't appear in {profile.Name}. Check the {browser.Name} window."), turnedOn);
@@ -348,15 +387,68 @@ public static class BrowserAutomation
 
     const string FileDialogClass = "#32770";
 
-    /// <summary>The page's Developer mode switch (id "devMode"). A text label with the same name sits next to it, so the
-    /// name alone only counts on a toggle button.</summary>
+    /// <summary>The page's Developer mode switch: id "devMode" in Chrome, "dev-switch" in Edge. A text label with the same
+    /// name sits next to it, so the name alone only counts on a toggle button. Edge keeps the switch in a side menu that
+    /// a narrow window folds behind an "Extensions menu" button (Edge 151, Nov 2026), so that menu is opened first.
+    /// While that menu is open the rest of the page is hidden, so the "AndMenu" version also returns the button that
+    /// closes it again.</summary>
     static async Task<AutomationElement?> DeveloperModeSwitchAsync(AutomationElement window, CancellationToken ct) =>
-        await WaitForAsync(window, new OrCondition(
+        (await DeveloperModeSwitchAndMenuAsync(window, ct)).Switch;
+
+    static async Task<(AutomationElement? Switch, AutomationElement? OpenedMenu)> DeveloperModeSwitchAndMenuAsync(AutomationElement window, CancellationToken ct)
+    {
+        AutomationElement? openedMenu = null;
+        var switchCondition = new OrCondition(
             new PropertyCondition(AutomationElement.AutomationIdProperty, "devMode"),
+            new PropertyCondition(AutomationElement.AutomationIdProperty, "dev-switch"),
             new AndCondition(
                 new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button),
-                new PropertyCondition(AutomationElement.NameProperty, "Developer mode"))), ct) is { } found
-            && found.TryGetCurrentPattern(TogglePattern.Pattern, out _) ? found : null;
+                new PropertyCondition(AutomationElement.NameProperty, "Developer mode")));
+        var menuCondition = new AndCondition(
+            new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button),
+            new PropertyCondition(AutomationElement.NameProperty, "Extensions menu"));
+        var found = await WaitForAsync(window, new OrCondition(switchCondition, menuCondition), ct);
+        // With the menu button there, a visible switch means Edge's menu is open (Edge remembers it): close it after use.
+        var menu = window.FindFirst(TreeScope.Descendants, menuCondition);
+        if (found != null && menu != null)
+        {
+            found = window.FindFirst(TreeScope.Descendants, switchCondition);
+            if (found == null)
+            {
+                ((InvokePattern)menu.GetCurrentPattern(InvokePattern.Pattern)).Invoke();
+                found = await WaitForAsync(window, switchCondition, ct);
+            }
+            openedMenu = menu;
+        }
+        return (found != null ? Toggleable(found) : null, openedMenu);
+    }
+
+    /// <summary>Closes Edge's open extensions menu: presses "Extensions menu" (found again, since the page rebuilds it when
+    /// the menu opens) until the switch is hidden.</summary>
+    static async Task CloseEdgeMenuAsync(AutomationElement window, CancellationToken ct)
+    {
+        var devSwitch = new PropertyCondition(AutomationElement.AutomationIdProperty, "dev-switch");
+        for (int attempt = 0; attempt < 3 && window.FindFirst(TreeScope.Descendants, devSwitch) != null; attempt++)
+        {
+            await Task.Delay(500, ct);
+            var menu = window.FindFirst(TreeScope.Descendants, new AndCondition(
+                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button),
+                new PropertyCondition(AutomationElement.NameProperty, "Extensions menu")));
+            if (menu == null) return;
+            ((InvokePattern)menu.GetCurrentPattern(InvokePattern.Pattern)).Invoke();
+            for (int i = 0; i < 10 && window.FindFirst(TreeScope.Descendants, devSwitch) != null; i++) await Task.Delay(150, ct);
+        }
+    }
+
+    /// <summary>The page shows this extension: Chrome's name heading (id "name"), or the picture Edge puts on each card,
+    /// named "‹name› extension icon" (Edge has no name heading id).</summary>
+    static Condition NameShown(string name) => new OrCondition(
+        new AndCondition(
+            new PropertyCondition(AutomationElement.AutomationIdProperty, "name"),
+            new PropertyCondition(AutomationElement.NameProperty, name)),
+        new AndCondition(
+            new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Image),
+            new PropertyCondition(AutomationElement.NameProperty, name + " extension icon")));
 
     /// <summary>Types the folder into Windows' folder picker ("Folder:" box, id 1152) and presses "Select Folder" (id 1).</summary>
     static async Task<bool> PickFolderAsync(AutomationElement picker, string folder, CancellationToken ct)
@@ -397,24 +489,39 @@ public static class BrowserAutomation
     static string ExtensionPage(ExtensionInfo extension) =>
         $"{extension.Profile.Browser.Definition.ExtensionsPageUrl}/?id={extension.Id}";
 
+    /// <summary>Edge's on/off switch on an extension's details view, a toggle button named "Extension on" / "Extension
+    /// off" (Edge 151, Nov 2026).</summary>
+    static readonly Condition EdgeDetailsSwitch = new AndCondition(
+        new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button),
+        new OrCondition(
+            new PropertyCondition(AutomationElement.NameProperty, "Extension on"),
+            new PropertyCondition(AutomationElement.NameProperty, "Extension off")));
+
     /// <summary>The page's on/off switch, but only when the page is that extension's details view: exactly one switch
-    /// (the list view has one per extension) and the extension's name in the window title or the details header.</summary>
+    /// (the list view has one per extension) and the extension's name in the window title or the details header.
+    /// Chrome's switch has id "enableToggle"; Edge's details view has a toggle button named "Extension on" / "Extension
+    /// off" (its list view uses "Turn on ‹name›" buttons instead, so these names only appear on a details view).</summary>
     static async Task<(AutomationElement? Switch, AutomationResult? Problem)> FindExtensionSwitchAsync(AutomationElement window, ExtensionInfo extension, CancellationToken ct)
     {
-        var condition = new PropertyCondition(AutomationElement.AutomationIdProperty, "enableToggle");
+        var condition = new OrCondition(
+            new PropertyCondition(AutomationElement.AutomationIdProperty, "enableToggle"), EdgeDetailsSwitch);
         if (await WaitForAsync(window, condition, ct) == null)
             return (null, new(AutomationOutcome.NeedsUser, $"The page opened, but its switch wasn't found. Make the change yourself in the {extension.Profile.Browser.Name} window."));
         await Task.Delay(400, ct); // let the page finish rendering before counting switches
 
         var switches = window.FindAll(TreeScope.Descendants, condition);
-        // The details view shows the extension's name as its title (page id "name"); fall back to the window title.
+        // The details view shows the extension's name as its title (page id "name"), or in Edge as its icon's name; fall
+        // back to the window title.
         var title = window.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, "name"));
         bool named = title != null
             ? title.Current.Name.Trim().Equals(extension.Name.Trim(), StringComparison.CurrentCultureIgnoreCase)
-            : window.Current.Name.Contains(extension.Name, StringComparison.CurrentCultureIgnoreCase);
+            : window.FindAll(TreeScope.Descendants, NameShown(extension.Name.Trim())).Count == 1
+              || window.Current.Name.Contains(extension.Name, StringComparison.CurrentCultureIgnoreCase);
         if (switches.Count != 1 || !named)
             return (null, new(AutomationOutcome.NeedsUser, $"The page didn't show {extension.Name}'s details, so nothing was changed. Check the {extension.Profile.Browser.Name} window."));
-        return (switches[0], null);
+        var toggle = Toggleable(switches[0]);
+        return toggle != null ? (toggle, null)
+            : (null, new(AutomationOutcome.NeedsUser, $"The page opened, but its switch wasn't found. Make the change yourself in the {extension.Profile.Browser.Name} window."));
     }
 
     /// <summary>Opens a new window of the profile and navigates it to an internal page. Returns the window, or why not.</summary>
@@ -613,6 +720,12 @@ public static class BrowserAutomation
     }
 
     static bool IsOn(TogglePattern pattern) => pattern.Current.ToggleState == ToggleState.On;
+
+    /// <summary>The switch itself: the element when it can be toggled, otherwise the switch inside it. Brave 1.98.62's
+    /// redesigned extensions page (Nov 2026) puts the "enableToggle" / "devMode" ids on a group around an unnamed switch.</summary>
+    static AutomationElement? Toggleable(AutomationElement element) =>
+        element.TryGetCurrentPattern(TogglePattern.Pattern, out _) ? element
+            : element.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.IsTogglePatternAvailableProperty, true));
 
     /// <summary>Closes the window only when it holds a single tab (the one the app opened).</summary>
     static void CloseIfOnlyOurTab(AutomationElement window)

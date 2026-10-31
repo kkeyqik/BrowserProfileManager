@@ -304,7 +304,11 @@ public sealed partial class ActionService : ObservableObject
 
         await RunAsync($"Creating “{name}”…", _ =>
         {
-            var created = ProfileCreator.Create(browser, name);
+            // Never reuse a folder this app made before: the profile may have been deleted in the browser since.
+            var usedBefore = ChangeJournal.Load()
+                .Where(r => r.Kind == ChangeKind.ProfileCreated && r.BrowserId == browser.Id && r.ProfilePath != null)
+                .Select(r => Path.GetFileName(r.ProfilePath!));
+            var created = ProfileCreator.Create(browser, name, usedBefore);
             Record(new ChangeRecord
             {
                 Kind = ChangeKind.ProfileCreated,

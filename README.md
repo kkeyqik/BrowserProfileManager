@@ -110,14 +110,15 @@
 | Browser | Profiles and extensions | Install | On / off and remove | Block in every profile | New profile |
 |---|:---:|:---:|:---:|:---:|:---:|
 | Google Chrome (Stable, Beta, Dev, Canary) | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Microsoft Edge (all channels) | ✓ | ✓¹ | ✓ | ✓ | ✓ |
+| Microsoft Edge (all channels) | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Brave | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Opera, Opera GX | ✓ | folders² | ✓ | Opera | ✓ |
+| Opera, Opera GX | ✓ | folders¹ | ✓ | Opera | ✓ |
 | Vivaldi, Chromium, Comet, Cốc Cốc, Yandex, Thorium | ✓ | ✓ | ✓ | Chromium, Comet | ✓ |
 | Arc | ✓ | in the browser | in the browser | — | — |
 | Firefox, LibreWolf, Waterfox, Zen, Floorp | ✓ | in the browser | in the browser | — | — |
 
-<sub>¹ Chrome Web Store installs in Edge need "Allow extensions from other stores" clicked once. ² Opera installs
+<sub>Installing, switching on and off, and removing were tested end to end on Chrome 156, Edge 151 and Brave 1.98
+(November 2026). ¹ Opera installs
 from the Chrome Web Store only with its own helper add-on; extension folders work.</sub>
 
 ## Install
@@ -189,7 +190,8 @@ Requirements: .NET 10 SDK and Inno Setup 6 (`winget install Microsoft.DotNet.SDK
 During development: `dotnet build BrowserProfileManager.slnx` and `dotnet test tests\BPM.Core.Tests`.
 The developer command line `src\BPM.Cli\bin\Debug\net10.0-windows\bpm.exe` runs the app's code without the window:
 `scan` (text dump, `--json` for everything), `doctor` (connection checks), `newprofile <browser> <name>`, and
-`page` / `uninstall <browser> <profile folder> <extension id>` (the app's browser automation).
+`page` / `uninstall <browser> <profile folder> <extension id>`, `onoff <browser> <profile folder> <extension id> on|off`
+(the app's browser automation).
 
 | Path | What |
 |---|---|
@@ -207,7 +209,7 @@ The developer command line `src\BPM.Cli\bin\Debug\net10.0-windows\bpm.exe` runs 
 <br>
 
 Chromium browsers protect each profile's extension switches with a tamper check, so the app never edits those files.
-It changes extensions only through routes the browsers support, tested on a real Chrome install:
+It changes extensions only through routes the browsers support, tested on real Chrome, Edge and Brave installs:
 
 1. **One profile**: opens a new window of that profile, puts `chrome://extensions/?id=…` in its address bar (browsers
    refuse internal pages from the command line), presses Enter only when the address bar has focus, confirms the window

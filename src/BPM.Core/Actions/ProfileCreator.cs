@@ -34,9 +34,11 @@ public static partial class ProfileCreator
     public static bool NameInUse(BrowserInfo browser, string name) =>
         browser.Profiles.Any(p => p.Name.Equals(name.Trim(), StringComparison.CurrentCultureIgnoreCase));
 
-    /// <summary>The next unused "Profile N" folder. It stays ahead of both the folders on disk and the browser's own
-    /// counter (Local State "profiles_created"), so the browser won't later pick the same folder for a profile it makes.</summary>
-    public static string NextFolderName(string userDataDir)
+    /// <summary>The next unused "Profile N" folder. It stays ahead of the folders on disk, the browser's own counter
+    /// (Local State "profiles_created" is the number the browser gives its next profile: Chrome made Profile 41 and then
+    /// read 42), and any folder this app made before (<paramref name="usedBefore"/>). A profile deleted in the browser
+    /// leaves no folder, but the browser refuses to open that folder name again until it restarts (seen Nov 2026).</summary>
+    public static string NextFolderName(string userDataDir, IEnumerable<string>? usedBefore = null)
     {
         int highest = 0;
         foreach (var dir in Directory.EnumerateDirectories(userDataDir))
@@ -47,8 +49,10 @@ public static partial class ProfileCreator
             foreach (var (key, _) in cache)
                 if (ProfileNumber(key) is { } n) highest = Math.Max(highest, n);
         int created = (int)(state.At("profile", "profiles_created").AsLong() ?? 0);
+        foreach (var folder in usedBefore ?? [])
+            if (ProfileNumber(folder) is { } n) highest = Math.Max(highest, n);
 
-        int next = Math.Max(highest + 1, created);
+        int next = Math.Max(highest + 1, created + 1);
         while (Directory.Exists(Path.Combine(userDataDir, $"Profile {next}"))) next++;
         return $"Profile {next}";
     }
@@ -64,11 +68,11 @@ public static partial class ProfileCreator
     private static partial Regex ProfileFolder();
 
     /// <summary>Makes the new profile's folder with a starter Preferences file that names it. Doesn't start the browser.</summary>
-    public static CreatedProfile Prepare(BrowserInfo browser, string name)
+    public static CreatedProfile Prepare(BrowserInfo browser, string name, IEnumerable<string>? usedBefore = null)
     {
         if (CheckCanCreate(browser, name) is { } problem) throw new InvalidOperationException(problem);
         name = name.Trim();
-        var key = NextFolderName(browser.DataDir!);
+        var key = NextFolderName(browser.DataDir!, usedBefore);
         var path = Path.Combine(browser.DataDir!, key);
         if (Directory.Exists(path)) throw new InvalidOperationException($"The folder {key} already exists, so nothing was created.");
 
@@ -87,9 +91,9 @@ public static partial class ProfileCreator
     }
 
     /// <summary>Creates the profile and opens it: the browser finishes setting it up the moment it opens the folder.</summary>
-    public static CreatedProfile Create(BrowserInfo browser, string name)
+    public static CreatedProfile Create(BrowserInfo browser, string name, IEnumerable<string>? usedBefore = null)
     {
-        var created = Prepare(browser, name);
+        var created = Prepare(browser, name, usedBefore);
         var start = new ProcessStartInfo(browser.ExePath!) { UseShellExecute = false };
         start.ArgumentList.Add($"--profile-directory={created.Key}");
         Process.Start(start)?.Dispose();

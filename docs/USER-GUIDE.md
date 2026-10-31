@@ -101,7 +101,7 @@ Nothing is blocked, and no administrator permission is needed. You can install t
 
 Tick the profiles, grouped by browser, or use **All Chrome profiles** or **All profiles**. Profiles that can't take the extension say why, for example "Already installed". Firefox installs only from its own add-ons site, and Arc can't be opened by other programs, so install in those yourself.
 
-In **Edge**, the Chrome Web Store needs one-time permission: click **Allow extensions from other stores** at the top of the store page, then try again.
+In **Edge**, if the store page asks for permission, click **Allow extensions from other stores** at the top of the page once, then try again.
 
 ### Block in all <browser> profiles (asks for administrator permission)
 

@@ -100,6 +100,20 @@ if (args.Length == 4 && args[0] == "uninstall")
     return;
 }
 
+if (args.Length == 5 && args[0] == "onoff" && args[4] is "on" or "off")
+{
+    var target = result.AllExtensions.FirstOrDefault(e =>
+        e.Profile.Browser.Id == args[1] && e.Profile.Key == args[2] && e.Id == args[3]);
+    if (target == null)
+    {
+        Console.WriteLine($"Not found: {args[3]} in {args[1]} / {args[2]}");
+        return;
+    }
+    var outcome = await BPM.Core.Automation.BrowserAutomation.SetEnabledAsync(target, args[4] == "on");
+    Console.WriteLine($"{outcome.Outcome}: {outcome.Message}");
+    return;
+}
+
 if (json)
 {
     var options = new JsonSerializerOptions { WriteIndented = true, Converters = { new JsonStringEnumConverter() } };

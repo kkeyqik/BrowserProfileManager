@@ -28,8 +28,21 @@ public sealed class ProfileCreatorTests
     {
         using var dir = new TempDir();
         Directory.CreateDirectory(dir.Combine("Profile 2"));
+        // Chrome names its next profile after this counter, so the app must not take that number.
         dir.WriteJson("Local State", JsonNode.Parse("""{"profile":{"profiles_created":12}}""")!);
-        Assert.Equal("Profile 12", ProfileCreator.NextFolderName(dir.Root));
+        Assert.Equal("Profile 13", ProfileCreator.NextFolderName(dir.Root));
+    }
+
+    [Fact]
+    public void Next_folder_skips_folders_the_app_made_before_even_when_deleted()
+    {
+        // Seen Nov 2026: the app made Profile 42, it was deleted in Chrome, and Chrome silently refused to open a new
+        // Profile 42 until it restarted.
+        using var dir = new TempDir();
+        Directory.CreateDirectory(dir.Combine("Profile 41"));
+        dir.WriteJson("Local State", JsonNode.Parse("""{"profile":{"profiles_created":42}}""")!);
+        Assert.Equal("Profile 43", ProfileCreator.NextFolderName(dir.Root));
+        Assert.Equal("Profile 45", ProfileCreator.NextFolderName(dir.Root, ["Profile 43", "Profile 44", "Default"]));
     }
 
     [Fact]
