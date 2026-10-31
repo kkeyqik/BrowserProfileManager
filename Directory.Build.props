@@ -6,7 +6,7 @@
     <Version>1.1.0</Version>
     <Product>Browser Profile Manager</Product>
     <Company>Browser Profile Manager</Company>
-    <Copyright>Copyright © 2026</Copyright>
+    <Copyright>Copyright © 2026 Naman</Copyright>
     <Deterministic>true</Deterministic>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>

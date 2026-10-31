@@ -14,7 +14,7 @@ public enum FixKind { None, KeepOneClaudeProfile, RemoveNativeHost, ShowSideload
 public sealed record DoctorCheck(CheckStatus Status, string Title, string Detail, FixKind Fix = FixKind.None, string? FixData = null, string Group = "");
 
 /// <summary>Why the Claude in Chrome extension can't reach the Claude app. Shown as one optional group of the Health page
-/// (see <see cref="HealthChecker"/>) when Claude is installed. Grew out of ChromeClaudeDoctor.exe.</summary>
+/// (see <see cref="HealthChecker"/>) when Claude is installed.</summary>
 public static class ConnectionDoctor
 {
     /// <summary>The Claude checks plus every other browser link (what <c>bpm doctor</c> prints).</summary>
@@ -45,7 +45,7 @@ public static class ConnectionDoctor
     internal static bool IsClaude(NativeHost host) => host.Name.StartsWith("com.anthropic.", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>The known Claude extension IDs plus every extension the Claude app's own browser link accepts, so a new
-    /// Claude build is recognised without an app update (as ChromeClaudeDoctor did).</summary>
+    /// Claude build is recognised without an app update.</summary>
     internal static HashSet<string> ClaudeIdsFor(IEnumerable<NativeHost> hosts)
     {
         var ids = new HashSet<string>(ProblemFinder.ClaudeIds, StringComparer.OrdinalIgnoreCase);
@@ -146,7 +146,7 @@ public static class ConnectionDoctor
                 && blocked.Any(b => b == "*" || b.StartsWith("com.anthropic.", StringComparison.OrdinalIgnoreCase)))
                 checks.Add(new(CheckStatus.Error, $"{browser.Name} blocks the Claude browser link", $"Policy NativeMessagingBlocklist: {string.Join(", ", blocked)}."));
 
-            // ExtensionInstallBlocklist ("*" = every extension) unless the allowlist names Claude (checked by ChromeClaudeDoctor too).
+            // ExtensionInstallBlocklist ("*" = every extension) unless the allowlist names Claude.
             var installBlocked = PolicyInspector.ReadList(key, "ExtensionInstallBlocklist");
             var installAllowed = PolicyInspector.ReadList(key, "ExtensionInstallAllowlist");
             if (!installAllowed.Any(claudeIds.Contains) && installBlocked.Any(b => b == "*" || claudeIds.Contains(b)))

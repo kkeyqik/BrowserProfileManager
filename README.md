@@ -7,7 +7,7 @@
   <a href="https://github.com/kkeyqik/BrowserProfileManager/releases"><img src="https://img.shields.io/github/downloads/kkeyqik/BrowserProfileManager/total?style=flat-square&color=06b6d4&label=downloads" alt="Downloads"></a>
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?style=flat-square&logo=windows&logoColor=white" alt="Windows 10 and 11">
   <img src="https://img.shields.io/badge/.NET-10-512BD4?style=flat-square&logo=dotnet&logoColor=white" alt=".NET 10">
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/kkeyqik/BrowserProfileManager?style=flat-square&color=22c55e" alt="MIT licence"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/kkeyqik/BrowserProfileManager?style=flat-square&color=22c55e" alt="Apache 2.0 licence"></a>
 </p>
 
 <p align="center">
@@ -17,7 +17,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/kkeyqik/BrowserProfileManager/releases/latest"><img src="https://img.shields.io/badge/Download%20for%20Windows-8B5CF6?style=for-the-badge&logo=windows&logoColor=white" alt="Download for Windows" height="44"></a>
+  <a href="https://github.com/kkeyqik/BrowserProfileManager/releases/latest"><img src="https://img.shields.io/badge/Download%20for%20Windows-8B5CF6?style=for-the-badge&logo=windows&logoColor=white" alt="Download for Windows" height="44"></a><br>
+  <sub>Free · Windows 10 and 11 · If Windows says "Windows protected your PC", click <b>More info</b>, then <b>Run anyway</b> (<a href="#install">why</a>)</sub>
 </p>
 
 ---
@@ -108,15 +109,15 @@
 
 | Browser | Profiles and extensions | Install | On / off and remove | Block in every profile | New profile |
 |---|:---:|:---:|:---:|:---:|:---:|
-| Google Chrome (Stable, Beta, Dev, Canary) | âœ“ | âœ“ | âœ“ | âœ“ | âœ“ |
-| Microsoft Edge (all channels) | âœ“ | âœ“Â¹ | âœ“ | âœ“ | âœ“ |
-| Brave | âœ“ | âœ“ | âœ“ | âœ“ | âœ“ |
-| Opera, Opera GX | âœ“ | foldersÂ² | âœ“ | Opera | âœ“ |
-| Vivaldi, Chromium, Comet, Cá»‘c Cá»‘c, Yandex, Thorium | âœ“ | âœ“ | âœ“ | Chromium, Comet | âœ“ |
-| Arc | âœ“ | in the browser | in the browser | â€” | â€” |
-| Firefox, LibreWolf, Waterfox, Zen, Floorp | âœ“ | in the browser | in the browser | â€” | â€” |
+| Google Chrome (Stable, Beta, Dev, Canary) | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Microsoft Edge (all channels) | ✓ | ✓¹ | ✓ | ✓ | ✓ |
+| Brave | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Opera, Opera GX | ✓ | folders² | ✓ | Opera | ✓ |
+| Vivaldi, Chromium, Comet, Cốc Cốc, Yandex, Thorium | ✓ | ✓ | ✓ | Chromium, Comet | ✓ |
+| Arc | ✓ | in the browser | in the browser | — | — |
+| Firefox, LibreWolf, Waterfox, Zen, Floorp | ✓ | in the browser | in the browser | — | — |
 
-<sub>Â¹ Chrome Web Store installs in Edge need "Allow extensions from other stores" clicked once. Â² Opera installs
+<sub>¹ Chrome Web Store installs in Edge need "Allow extensions from other stores" clicked once. ² Opera installs
 from the Chrome Web Store only with its own helper add-on; extension folders work.</sub>
 
 ## Install
@@ -181,7 +182,7 @@ on. Sideloads &amp; policies shows which program it is, and <b>Remove entry</b> 
 Requirements: .NET 10 SDK and Inno Setup 6 (`winget install Microsoft.DotNet.SDK.10`, `winget install JRSoftware.InnoSetup`).
 
 ```powershell
-.\build.ps1                  # tests, self-contained exe, portable zip, installer â†’ artifacts\
+.\build.ps1                  # tests, self-contained exe, portable zip, installer → artifacts\
 .\build.ps1 -Version 1.1.0
 ```
 
@@ -197,7 +198,7 @@ The developer command line `src\BPM.Cli\bin\Debug\net10.0-windows\bpm.exe` runs 
 | `src/BPM.Cli` | `bpm.exe` developer command line |
 | `tests/BPM.Core.Tests` | xUnit tests with fake profile folders |
 | `installer/` | Inno Setup script |
-| `docs/` | User guide, original plan, test findings, images |
+| `docs/` | User guide and images |
 
 </details>
 
@@ -206,10 +207,9 @@ The developer command line `src\BPM.Cli\bin\Debug\net10.0-windows\bpm.exe` runs 
 <br>
 
 Chromium browsers protect each profile's extension switches with a tamper check, so the app never edits those files.
-It changes extensions only through routes the browsers support, tested on a real Chrome install
-(see [docs/M1-FINDINGS.md](docs/M1-FINDINGS.md)):
+It changes extensions only through routes the browsers support, tested on a real Chrome install:
 
-1. **One profile**: opens a new window of that profile, puts `chrome://extensions/?id=â€¦` in its address bar (browsers
+1. **One profile**: opens a new window of that profile, puts `chrome://extensions/?id=…` in its address bar (browsers
    refuse internal pages from the command line), presses Enter only when the address bar has focus, confirms the window
    belongs to the right profile, then flips the switch (`enableToggle`) through Windows UI Automation.
 2. **All profiles**: the browser's `ExtensionSettings` policy in HKLM (per-user policies are ignored on PCs that aren't
@@ -221,4 +221,5 @@ It changes extensions only through routes the browsers support, tested on a real
 
 ## Licence
 
-[MIT](LICENSE) Â© 2026 Naman
+[Apache License 2.0](LICENSE) © 2026 Naman. Free to use, change and share. If you share a copy or a changed
+version, keep the [NOTICE](NOTICE) file, credit Browser Profile Manager by Naman, and mark the files you changed.
