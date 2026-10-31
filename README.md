@@ -11,9 +11,9 @@
 </p>
 
 <p align="center">
-  <b>Too many browser profiles? Extensions you forgot about?</b><br>
+  <b>Too many browser profiles? Extensions you forgot about? Need the same extension in ten profiles?</b><br>
   Browser Profile Manager finds every browser on your PC, every profile in each one and every extension in each profile,<br>
-  then lets you sort them out from one window.
+  then lets you install, switch off, remove and tidy them up from one window.
 </p>
 
 <p align="center">
@@ -32,23 +32,35 @@
       every extension with its permissions in plain English and a risk level.
     </td>
     <td width="50%" valign="top">
-      <h3>Manage extensions anywhere</h3>
-      Install an extension in the profiles you pick, from the Chrome Web Store, a folder or a <code>.crx</code> file.
-      Turn it on or off, or remove it, in one profile or in every profile at once. Block one in every profile of a
-      browser, or reset an extension's data.
+      <h3>Install anywhere</h3>
+      <b>New in 1.1.</b> Pick an extension, tick the profiles, done: from a Chrome Web Store link, an extension folder
+      or a <code>.crx</code> file, into any profile of any Chromium browser. Developer mode is turned on for you
+      where a folder needs it.
     </td>
   </tr>
   <tr>
+    <td width="50%" valign="top">
+      <h3>Switch off or remove everywhere</h3>
+      Turn an extension on or off, or remove it, in one profile or in every profile at once. Block one in every profile
+      of a browser with a single click, or reset an extension's data to sign it out.
+    </td>
     <td width="50%" valign="top">
       <h3>Keep profiles healthy</h3>
       The Health page shows accounts that need signing in again, profiles that aren't signed in or haven't been used
       in months, broken browser links left by uninstalled programs, and why a browser says
       "Managed by your organization".
     </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>New profiles in seconds</h3>
+      Create a named profile in any Chromium browser, open any profile directly, and put a desktop shortcut to it on
+      your desktop.
+    </td>
     <td width="50%" valign="top">
       <h3>Undo anything</h3>
-      Every change goes into a change log with one-click undo. Create new named profiles and desktop shortcuts, and
-      export a report of a PC as a web page, spreadsheet or JSON, with emails hidden if you like.
+      Every change goes into a change log with one-click undo. Export a report of a PC as a web page, spreadsheet or
+      JSON, with emails hidden if you like.
     </td>
   </tr>
 </table>
@@ -58,27 +70,35 @@
 <table>
   <tr>
     <td><img src="docs/images/dashboard.png" alt="Dashboard with counters, problems found and browser cards"></td>
-    <td><img src="docs/images/profiles.png" alt="Browsers and profiles, with a profile's extensions and the details of one extension"></td>
+    <td><img src="docs/images/install.png" alt="Install an extension: a Chrome Web Store link, with three Chrome profiles ticked"></td>
   </tr>
   <tr>
     <td align="center"><sub><b>Dashboard</b>: counts, problems found and every browser on the PC</sub></td>
-    <td align="center"><sub><b>Browsers &amp; profiles</b>: each profile's extensions, with actions and details</sub></td>
+    <td align="center"><sub><b>Install an extension</b>: pick it, tick the profiles, install</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/images/health.png" alt="Health page grouped into accounts, profiles, browser links and policies"></td>
+    <td><img src="docs/images/profiles.png" alt="Browsers and profiles, with a profile's extensions and the details of one extension"></td>
     <td><img src="docs/images/all-extensions.png" alt="All extensions, each listed once with every profile it's installed in"></td>
   </tr>
   <tr>
-    <td align="center"><sub><b>Health</b>: what needs attention, with a button to fix it</sub></td>
+    <td align="center"><sub><b>Browsers &amp; profiles</b>: each profile's extensions, with actions and details</sub></td>
     <td align="center"><sub><b>All extensions</b>: each extension once, across every profile</sub></td>
   </tr>
   <tr>
+    <td><img src="docs/images/health.png" alt="Health page grouped into accounts, profiles, browser links and policies"></td>
     <td><img src="docs/images/sideloads.png" alt="Sideloads and policies: programs that push extensions into browsers, and browser policies"></td>
-    <td><img src="docs/images/change-log.png" alt="Change log with undo"></td>
   </tr>
   <tr>
+    <td align="center"><sub><b>Health</b>: what needs attention, with a button to fix it</sub></td>
     <td align="center"><sub><b>Sideloads &amp; policies</b>: programs that push extensions into your browsers</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/change-log.png" alt="Change log with undo"></td>
+    <td><img src="docs/images/settings.png" alt="Settings: theme, scan on start, hide emails in reports"></td>
+  </tr>
+  <tr>
     <td align="center"><sub><b>Change log</b>: every change, with undo</sub></td>
+    <td align="center"><sub><b>Settings</b>: light, dark or system theme, and privacy options</sub></td>
   </tr>
 </table>
 
@@ -88,15 +108,15 @@
 
 | Browser | Profiles and extensions | Install | On / off and remove | Block in every profile | New profile |
 |---|:---:|:---:|:---:|:---:|:---:|
-| Google Chrome (Stable, Beta, Dev, Canary) | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Microsoft Edge (all channels) | ✓ | ✓¹ | ✓ | ✓ | ✓ |
-| Brave | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Opera, Opera GX | ✓ | folders² | ✓ | Opera | ✓ |
-| Vivaldi, Chromium, Comet, Cốc Cốc, Yandex, Thorium | ✓ | ✓ | ✓ | Chromium, Comet | ✓ |
-| Arc | ✓ | in the browser | in the browser | — | — |
-| Firefox, LibreWolf, Waterfox, Zen, Floorp | ✓ | in the browser | in the browser | — | — |
+| Google Chrome (Stable, Beta, Dev, Canary) | âœ“ | âœ“ | âœ“ | âœ“ | âœ“ |
+| Microsoft Edge (all channels) | âœ“ | âœ“Â¹ | âœ“ | âœ“ | âœ“ |
+| Brave | âœ“ | âœ“ | âœ“ | âœ“ | âœ“ |
+| Opera, Opera GX | âœ“ | foldersÂ² | âœ“ | Opera | âœ“ |
+| Vivaldi, Chromium, Comet, Cá»‘c Cá»‘c, Yandex, Thorium | âœ“ | âœ“ | âœ“ | Chromium, Comet | âœ“ |
+| Arc | âœ“ | in the browser | in the browser | â€” | â€” |
+| Firefox, LibreWolf, Waterfox, Zen, Floorp | âœ“ | in the browser | in the browser | â€” | â€” |
 
-<sub>¹ Chrome Web Store installs in Edge need "Allow extensions from other stores" clicked once. ² Opera installs
+<sub>Â¹ Chrome Web Store installs in Edge need "Allow extensions from other stores" clicked once. Â² Opera installs
 from the Chrome Web Store only with its own helper add-on; extension folders work.</sub>
 
 ## Install
@@ -161,7 +181,7 @@ on. Sideloads &amp; policies shows which program it is, and <b>Remove entry</b> 
 Requirements: .NET 10 SDK and Inno Setup 6 (`winget install Microsoft.DotNet.SDK.10`, `winget install JRSoftware.InnoSetup`).
 
 ```powershell
-.\build.ps1                  # tests, self-contained exe, portable zip, installer → artifacts\
+.\build.ps1                  # tests, self-contained exe, portable zip, installer â†’ artifacts\
 .\build.ps1 -Version 1.1.0
 ```
 
@@ -189,7 +209,7 @@ Chromium browsers protect each profile's extension switches with a tamper check,
 It changes extensions only through routes the browsers support, tested on a real Chrome install
 (see [docs/M1-FINDINGS.md](docs/M1-FINDINGS.md)):
 
-1. **One profile**: opens a new window of that profile, puts `chrome://extensions/?id=…` in its address bar (browsers
+1. **One profile**: opens a new window of that profile, puts `chrome://extensions/?id=â€¦` in its address bar (browsers
    refuse internal pages from the command line), presses Enter only when the address bar has focus, confirms the window
    belongs to the right profile, then flips the switch (`enableToggle`) through Windows UI Automation.
 2. **All profiles**: the browser's `ExtensionSettings` policy in HKLM (per-user policies are ignored on PCs that aren't
@@ -201,4 +221,4 @@ It changes extensions only through routes the browsers support, tested on a real
 
 ## Licence
 
-[MIT](LICENSE) © 2026 Naman
+[MIT](LICENSE) Â© 2026 Naman

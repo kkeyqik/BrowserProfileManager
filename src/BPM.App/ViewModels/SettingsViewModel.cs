@@ -21,7 +21,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     public IReadOnlyList<string> Themes { get; } = ["System", "Light", "Dark"];
-    public string DataFolder => AppPaths.DataDir;
+    /// <summary>Where the app keeps its files. Demo mode shows the made-up user's usual path instead of its temp folder,
+    /// so screenshots and videos don't show the real Windows user name.</summary>
+    public string DataFolder => DemoMode.IsOn ? @"C:\Users\alex\AppData\Local\BrowserProfileManager" : AppPaths.DataDir;
     public string VersionText => $"Version {Assembly.GetEntryAssembly()?.GetName().Version?.ToString(3) ?? "1.0.0"}";
 
     [ObservableProperty] private string theme;
