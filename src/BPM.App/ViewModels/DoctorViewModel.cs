@@ -35,6 +35,11 @@ public sealed partial class DoctorViewModel(MainViewModel main) : ObservableObje
         {
             var (checks, found) = await Task.Run(() =>
             {
+                if (DemoMode.IsOn)
+                {
+                    var demoLinks = DemoMode.Hosts();
+                    return (HealthChecker.Run(snapshot, demoLinks, DemoMode.Policies(), DemoMode.ProfileButtonLabels(snapshot), DateTime.Now), demoLinks);
+                }
                 var links = NativeHostInspector.Find(definitions);
                 var policies = PolicyInspector.Read(definitions);
                 // Profile buttons of open windows show sign-in problems ("Paused"); closed profiles can't be checked.

@@ -525,6 +525,11 @@ public sealed partial class ActionService : ObservableObject
     /// to confirm a change that would then be refused.</summary>
     bool RefuseIfBusy()
     {
+        if (DemoMode.IsOn)
+        {
+            Notifier.Info("Demo mode", "This is made-up data, so actions are turned off. Start the app normally to manage your browsers.");
+            return true;
+        }
         if (!IsBusy) return false;
         Notifier.Info("One moment", "Another action is still running. Wait for it, or press Stop.");
         return true;

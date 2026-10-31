@@ -1,0 +1,29 @@
+name: Feature request
+description: An idea that would make the app more useful
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The situation or problem, in your own words.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help?
+      description: How you imagine it working in the app.
+  - type: dropdown
+    id: browsers
+    attributes:
+      label: Which browsers does it matter for?
+      multiple: true
+      options:
+        - Google Chrome
+        - Microsoft Edge
+        - Brave
+        - Opera
+        - Vivaldi
+        - Firefox
+        - Other

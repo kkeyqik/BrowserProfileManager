@@ -30,7 +30,9 @@ public sealed partial class SideloadsViewModel(MainViewModel main) : ObservableO
         List<PolicyValue> policies;
         try
         {
-            (sideloads, policies) = await Task.Run(() => (SideloadInspector.Find(browsers), PolicyInspector.Read(browsers)));
+            (sideloads, policies) = DemoMode.IsOn
+                ? (DemoMode.Sideloads(), DemoMode.Policies())
+                : await Task.Run(() => (SideloadInspector.Find(browsers), PolicyInspector.Read(browsers)));
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {

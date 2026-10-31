@@ -74,8 +74,9 @@ public sealed partial class MainViewModel : ObservableObject
         StatusText = "Scanning browsers…";
         try
         {
-            var result = await Scanner.ScanAsync();
+            var result = DemoMode.IsOn ? DemoMode.CreateScan() : await Scanner.ScanAsync();
             Apply(result);
+            if (DemoMode.IsOn) return; // made-up data: nothing on disk to watch or measure
             watcher.Watch(result);
             _ = FillSizesAsync(result);
         }
@@ -163,7 +164,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     async Task RefreshBrowserOnceAsync(string browserId)
     {
-        if (Scan is not { } current || IsScanning) return;
+        if (Scan is not { } current || IsScanning || DemoMode.IsOn) return;
         var old = current.Browsers.FirstOrDefault(b => b.Id == browserId);
         if (old == null) return;
 
@@ -201,7 +202,7 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Refreshes "running" and "open" badges without a full rescan.</summary>
     public async Task RefreshLiveStateAsync()
     {
-        if (Scan is not { } current || IsScanning) return;
+        if (Scan is not { } current || IsScanning || DemoMode.IsOn) return;
         // Snapshot on the UI thread: a live refresh may replace a browser in the scan while this runs.
         var snapshot = current.Browsers.Select(b => (Browser: b, Profiles: b.Profiles.ToList())).ToList();
         var states = await Task.Run(() =>

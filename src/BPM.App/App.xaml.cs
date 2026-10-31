@@ -18,6 +18,9 @@ public partial class App : Application
             return;
         }
 
+        // Demo mode: made-up profiles and extensions for screenshots and videos; nothing on this PC is listed or changed.
+        if (e.Args.Contains("--demo", StringComparer.OrdinalIgnoreCase)) DemoMode.Start();
+
         // One window at a time: a second launch brings the running one to the front.
         singleInstance = new Mutex(true, @"Local\BrowserProfileManager.App", out bool firstInstance);
         if (!firstInstance)

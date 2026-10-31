@@ -10,6 +10,10 @@ Browser Profile Manager shows you every web browser on this PC, every profile in
 
 Prefer not to install? Use the portable `.zip` file. Unzip it and run the app from that folder.
 
+Want to look around first, or show the app to someone without your own profiles on screen? Start it with demo data:
+press **Win + R** and run `"%LOCALAPPDATA%\Programs\Browser Profile Manager\BrowserProfileManager.exe" --demo`. It shows
+made-up browsers, profiles and extensions, and its buttons don't change anything.
+
 To uninstall, go to **Settings > Apps** in Windows and choose Browser Profile Manager. The uninstaller asks whether to delete your settings, change log and backups. Choose what you want.
 
 ## 2. The left side

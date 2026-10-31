@@ -11,7 +11,7 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="16,4,24,24">
             <DockPanel>
-                <ui:Button DockPanel.Dock="Right" Content="Export report…" Icon="{ui:SymbolIcon ArrowExport24}" Command="{Binding ExportCommand}"
+                <ui:Button DockPanel.Dock="Right" Content="Export report…" Icon="{ui:SymbolIcon Share24}" Command="{Binding ExportCommand}"
                            VerticalAlignment="Top" Visibility="{Binding HasScan, Converter={StaticResource BoolToVisible}}"
                            ToolTip="Save the scan as a web page, spreadsheet or JSON (emails can be hidden in Settings)" />
                 <TextBlock Text="Dashboard" Style="{StaticResource PageTitle}" />

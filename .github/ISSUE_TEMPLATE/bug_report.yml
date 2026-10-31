@@ -1,0 +1,52 @@
+name: Bug report
+description: Something doesn't work as it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please don't paste profile names, emails or account details: describe them instead (for example "a Chrome profile signed in with a work account").
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: dropdown
+    id: page
+    attributes:
+      label: Where in the app?
+      options:
+        - Dashboard
+        - Browsers & profiles
+        - All extensions
+        - Health
+        - Sideloads & policies
+        - Change log
+        - Settings
+        - Installing or starting the app
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: Google Chrome 141.0.7390.55
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Shown at the bottom of Settings.
+      placeholder: "1.0.0"
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2
+  - type: textarea
+    id: log
+    attributes:
+      label: Error log (optional)
+      description: The newest entry in %LOCALAPPDATA%\BrowserProfileManager\errors.log, if there is one.
+      render: text
