@@ -4,6 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/kkeyqik/BrowserProfileManager/releases/latest"><img src="https://img.shields.io/github/v/release/kkeyqik/BrowserProfileManager?style=flat-square&color=8b5cf6&label=release" alt="Latest release"></a>
+  <a href="https://github.com/kkeyqik/BrowserProfileManager/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/kkeyqik/BrowserProfileManager/build.yml?branch=main&style=flat-square&label=build" alt="Build status"></a>
   <a href="https://github.com/kkeyqik/BrowserProfileManager/releases"><img src="https://img.shields.io/github/downloads/kkeyqik/BrowserProfileManager/total?style=flat-square&color=06b6d4&label=downloads" alt="Downloads"></a>
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?style=flat-square&logo=windows&logoColor=white" alt="Windows 10 and 11">
   <img src="https://img.shields.io/badge/.NET-10-512BD4?style=flat-square&logo=dotnet&logoColor=white" alt=".NET 10">
@@ -220,6 +221,11 @@ It changes extensions only through routes the browsers support, tested on real C
 4. **New profile**: starts the browser with `--profile-directory` pointing at a new folder, seeded only with the chosen name.
 
 </details>
+
+## Contributing
+
+Bug reports, ideas and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). Report security problems
+privately as described in [SECURITY.md](SECURITY.md). What changed in each version is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Licence
 

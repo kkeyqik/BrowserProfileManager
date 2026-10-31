@@ -6,6 +6,9 @@ using BPM.Core.Util;
 
 namespace BPM.Core.Tests;
 
+// One test points the app's data folder elsewhere for a moment, so this class mustn't run alongside tests that write
+// there (Firefox icons landed in its temp folder and their cleanup failed now and then).
+[Collection("AppPaths")]
 public sealed class ExtensionInstallTests
 {
     const string WhatFont = "jabopobgcpjmedljpbcaablpmlmfcogm";
