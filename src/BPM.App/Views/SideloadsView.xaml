@@ -1,0 +1,69 @@
+<UserControl x:Class="BPM.App.Views.SideloadsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:vm="clr-namespace:BPM.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance vm:SideloadsViewModel, IsDesignTimeCreatable=False}">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="16,4,24,24">
+            <TextBlock Text="Sideloads &amp; policies" Style="{StaticResource PageTitle}" Margin="0,0,0,2" />
+            <TextBlock Style="{StaticResource Caption}" Margin="0,0,0,12" TextWrapping="Wrap"
+                       Text="Programs can push extensions into browsers through the registry; the browser then asks in every profile whether to turn them on. Policies are admin settings; any policy makes a browser say “Managed by your organization”." />
+
+            <TextBlock Text="Extensions pushed in by other programs" Style="{StaticResource SectionTitle}" Margin="0,4,0,8" />
+            <Border Style="{StaticResource Panel}" Padding="16" Visibility="{Binding NoSideloads, Converter={StaticResource BoolToVisible}}">
+                <TextBlock Text="No program pushes extensions into your browsers." Style="{StaticResource Body}" />
+            </Border>
+            <ItemsControl ItemsSource="{Binding Sideloads}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:SideloadRow}">
+                        <Border Style="{StaticResource Panel}" Padding="14,12" Margin="0,0,0,6">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <ContentControl Width="28" Height="28" Content="{Binding}" ContentTemplate="{StaticResource ExtensionIcon}" Focusable="False" VerticalAlignment="Top" />
+                                <StackPanel Grid.Column="1" Margin="12,0">
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Style="{StaticResource Body}" />
+                                    <TextBlock Text="{Binding CountsText}" Style="{StaticResource Body}" />
+                                    <TextBlock Style="{StaticResource Caption}" TextWrapping="Wrap">
+                                        <Run Text="Into " /><Run Text="{Binding BrowsersText, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding ScopeText, Mode=OneWay}" />
+                                        <Run Text=" · from " /><Run Text="{Binding SourceText, Mode=OneWay}" />
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding DisplayKey}" Style="{StaticResource Caption}" FontFamily="Consolas" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <ui:Button Grid.Column="2" Content="Remove entry…" Icon="{ui:SymbolIcon Delete24}" VerticalAlignment="Center"
+                                           Command="{Binding DataContext.RemoveCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                           CommandParameter="{Binding}" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Text="Browser policies on this PC" Style="{StaticResource SectionTitle}" />
+            <TextBlock Style="{StaticResource Caption}" Margin="0,0,0,8" TextWrapping="Wrap"
+                       Text="On a PC that isn't managed by a company, Chrome ignores policies set for “You only” and applies the “All users” ones. Policies this app set can be undone from the Change log." />
+            <Border Style="{StaticResource Panel}" Padding="16" Visibility="{Binding NoPolicies, Converter={StaticResource BoolToVisible}}">
+                <TextBlock Text="No browser policies are set. Your browsers aren't managed." Style="{StaticResource Body}" />
+            </Border>
+            <Border Style="{StaticResource Panel}" Visibility="{Binding Policies.Count, Converter={StaticResource EmptyToCollapsed}}">
+                <DataGrid ItemsSource="{Binding Policies}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" GridLinesVisibility="None"
+                          SelectionMode="Single" CanUserResizeRows="False" RowHeight="36" Background="Transparent" BorderThickness="0"
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Browser" Binding="{Binding Browsers}" Width="200" />
+                        <DataGridTextColumn Header="For" Binding="{Binding Scope.Label}" Width="110" />
+                        <DataGridTextColumn Header="Policy" Binding="{Binding Name}" Width="220" />
+                        <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="*" MinWidth="160" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

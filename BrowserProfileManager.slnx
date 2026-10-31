@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/BPM.App/BPM.App.csproj" />
+    <Project Path="src/BPM.Cli/BPM.Cli.csproj" />
+    <Project Path="src/BPM.Core/BPM.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/BPM.Core.Tests/BPM.Core.Tests.csproj" />
+  </Folder>
+</Solution>

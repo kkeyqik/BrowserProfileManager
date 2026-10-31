@@ -1,0 +1,211 @@
+<UserControl x:Class="BPM.App.Views.BrowsersView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:vm="clr-namespace:BPM.App.ViewModels"
+             xmlns:views="clr-namespace:BPM.App.Views"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance vm:BrowsersViewModel, IsDesignTimeCreatable=False}">
+    <Grid Margin="8,4,16,16">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="260" MinWidth="200" />
+            <ColumnDefinition Width="8" />
+            <ColumnDefinition Width="*" MinWidth="360" />
+            <ColumnDefinition Width="8" />
+            <ColumnDefinition Width="340" MinWidth="280" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Browser / profile tree -->
+        <Border Grid.Column="0" Style="{StaticResource Panel}" Padding="4">
+            <TreeView ItemsSource="{Binding Browsers}" SelectedItemChanged="Tree_SelectedItemChanged" BorderThickness="0" Background="Transparent">
+                <TreeView.ItemContainerStyle>
+                    <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                        <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                    </Style>
+                </TreeView.ItemContainerStyle>
+                <TreeView.Resources>
+                    <HierarchicalDataTemplate DataType="{x:Type vm:BrowserNode}" ItemsSource="{Binding Profiles}">
+                        <StackPanel Orientation="Horizontal" Margin="0,4">
+                            <Image Source="{Binding Icon}" Width="20" Height="20" />
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding ProfileCountText}" Style="{StaticResource Caption}" Margin="8,0,0,0" VerticalAlignment="Center" />
+                            <Ellipse Width="8" Height="8" Fill="#2FA04E" Margin="8,0,0,0" ToolTip="Running"
+                                     Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisible}}" />
+                        </StackPanel>
+                    </HierarchicalDataTemplate>
+                    <DataTemplate DataType="{x:Type vm:ProfileNode}">
+                        <Grid Margin="0,3" Width="190">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ContentControl Width="28" Height="28" FontSize="12" Content="{Binding}" ContentTemplate="{StaticResource ProfileAvatar}" Focusable="False" />
+                            <StackPanel Grid.Column="1" Margin="8,0,4,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding Email}" Style="{StaticResource Caption}"
+                                           Visibility="{Binding Email, Converter={StaticResource EmptyToCollapsed}}" />
+                            </StackPanel>
+                            <Ellipse Grid.Column="2" Width="8" Height="8" Fill="#2FA04E" ToolTip="Open now" VerticalAlignment="Center"
+                                     Visibility="{Binding IsOpen, Converter={StaticResource BoolToVisible}}" />
+                        </Grid>
+                    </DataTemplate>
+                </TreeView.Resources>
+            </TreeView>
+        </Border>
+
+        <GridSplitter Grid.Column="1" Width="8" HorizontalAlignment="Stretch" Background="Transparent" />
+
+        <!-- Middle -->
+        <Grid Grid.Column="2">
+            <!-- Nothing selected -->
+            <TextBlock Text="Press “Scan this PC” to list your browsers." Style="{StaticResource Caption}" FontSize="14"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Visibility="{Binding HasNothing, Converter={StaticResource BoolToVisible}}" />
+
+            <!-- A profile: header, search, extension list -->
+            <Grid Visibility="{Binding HasProfile, Converter={StaticResource BoolToVisible}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Border Style="{StaticResource Panel}" Padding="16" DataContext="{Binding SelectedProfile}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <ContentControl Width="52" Height="52" FontSize="20" Content="{Binding}" ContentTemplate="{StaticResource ProfileAvatar}" Focusable="False" VerticalAlignment="Top" />
+                        <StackPanel Grid.Column="1" Margin="14,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Name}" FontSize="20" FontWeight="SemiBold" Style="{StaticResource Body}" />
+                                <Border Style="{StaticResource Badge}" Margin="10,0,0,0" Background="#332FA04E" Visibility="{Binding IsOpen, Converter={StaticResource BoolToVisible}}">
+                                    <TextBlock Text="open now" FontSize="11" Foreground="#2FA04E" />
+                                </Border>
+                                <Border Style="{StaticResource Badge}" Margin="6,0,0,0" Background="#333B82F6" Visibility="{Binding IsLastUsed, Converter={StaticResource BoolToVisible}}">
+                                    <TextBlock Text="last used" FontSize="11" Foreground="#3B82F6" />
+                                </Border>
+                            </StackPanel>
+                            <TextBlock Text="{Binding Email}" Style="{StaticResource Body}" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Visibility="{Binding Email, Converter={StaticResource EmptyToCollapsed}}" />
+                            <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,0">
+                                <Run Text="{Binding Browser.Name, Mode=OneWay}" /><Run Text=" · folder " /><Run Text="{Binding Key, Mode=OneWay}" />
+                                <Run Text=" · " /><Run Text="{Binding SizeBytes, Mode=OneWay, Converter={StaticResource BytesToText}}" />
+                                <Run Text=" · " /><Run Text="{Binding ExtensionCountText, Mode=OneWay}" />
+                            </TextBlock>
+                            <WrapPanel Margin="0,10,0,0">
+                                <ui:Button Content="Open profile" Icon="{ui:SymbolIcon Open24}" Command="{Binding OpenCommand}" Margin="0,0,6,0" />
+                                <ui:Button Content="Extensions page" Icon="{ui:SymbolIcon PuzzlePiece24}" Command="{Binding ShowExtensionsPageCommand}" Margin="0,0,6,0" />
+                                <ui:Button Content="Desktop shortcut" Icon="{ui:SymbolIcon Desktop24}" Command="{Binding CreateShortcutCommand}" Margin="0,0,6,0" />
+                                <ui:Button Content="New profile…" Icon="{ui:SymbolIcon PersonAdd24}" Command="{Binding Browser.CreateProfileCommand}"
+                                           Visibility="{Binding Browser.CanCreateProfiles, Converter={StaticResource BoolToVisible}}"
+                                           ToolTip="Create another, empty profile in this browser and open it" />
+                            </WrapPanel>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Grid Grid.Row="1" Margin="0,10,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="200" />
+                    </Grid.ColumnDefinitions>
+                    <ui:TextBox PlaceholderText="Search this profile's extensions" Icon="{ui:SymbolIcon Search24}"
+                                Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" ClearButtonEnabled="True" />
+                    <ComboBox Grid.Column="1" Margin="8,0,0,0" ItemsSource="{Binding Filters}" SelectedItem="{Binding SelectedFilter}" />
+                </Grid>
+
+                <Border Grid.Row="2" Style="{StaticResource Panel}">
+                    <Grid>
+                        <DataGrid ItemsSource="{Binding VisibleExtensions}" SelectedItem="{Binding SelectedExtension}"
+                                  AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" GridLinesVisibility="None"
+                                  SelectionMode="Single" CanUserResizeRows="False" RowHeight="44" Background="Transparent" BorderThickness="0"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Header="Extension" Width="*" MinWidth="180" SortMemberPath="Name">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate DataType="{x:Type vm:ExtensionRow}">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0">
+                                                <ContentControl Width="24" Height="24" Content="{Binding}" ContentTemplate="{StaticResource ExtensionIcon}" Focusable="False" />
+                                                <TextBlock Text="{Binding Name}" Margin="10,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Description}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Version" Binding="{Binding Version}" Width="90" />
+                                <DataGridTemplateColumn Header="State" Width="66" SortMemberPath="StateText">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource StatePill}" VerticalAlignment="Center" Focusable="False" ToolTip="{Binding ReasonText}" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Risk" Width="78" SortMemberPath="Risk">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource RiskBadge}" VerticalAlignment="Center" Focusable="False" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <TextBlock Text="No extensions match." Style="{StaticResource Caption}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Visibility="{Binding VisibleExtensions.Count, Converter={StaticResource EmptyToVisible}}" />
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- A browser -->
+            <ScrollViewer Visibility="{Binding HasBrowser, Converter={StaticResource BoolToVisible}}" VerticalScrollBarVisibility="Auto">
+                <Border Style="{StaticResource Panel}" Padding="20" DataContext="{Binding SelectedBrowser}" VerticalAlignment="Top">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="{Binding Icon}" Width="40" Height="40" />
+                            <StackPanel Margin="14,0,0,0">
+                                <TextBlock Text="{Binding Name}" FontSize="20" FontWeight="SemiBold" Style="{StaticResource Body}" />
+                                <TextBlock Style="{StaticResource Caption}">
+                                    <Run Text="{Binding Version, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding FamilyText, Mode=OneWay}" />
+                                </TextBlock>
+                            </StackPanel>
+                        </StackPanel>
+                        <Grid Margin="0,16,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Text="Running" Style="{StaticResource FieldLabel}" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding RunningText}" Style="{StaticResource FieldValue}" />
+                            <TextBlock Grid.Row="1" Text="Profiles" Style="{StaticResource FieldLabel}" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ProfileCountText}" Style="{StaticResource FieldValue}" />
+                            <TextBlock Grid.Row="2" Text="Program" Style="{StaticResource FieldLabel}" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ExePath}" Style="{StaticResource FieldValue}" />
+                            <TextBlock Grid.Row="3" Text="Data folder" Style="{StaticResource FieldLabel}" />
+                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding DataDir}" Style="{StaticResource FieldValue}" />
+                            <TextBlock Grid.Row="4" Text="All-profiles switch" Style="{StaticResource FieldLabel}" />
+                            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding PolicyText}" Style="{StaticResource FieldValue}" />
+                        </Grid>
+                        <ui:Button Content="New profile…" Icon="{ui:SymbolIcon PersonAdd24}" Command="{Binding CreateProfileCommand}" Margin="0,16,0,0"
+                                   Visibility="{Binding CanCreateProfiles, Converter={StaticResource BoolToVisible}}"
+                                   ToolTip="Create another, empty profile in this browser and open it" />
+                        <TextBlock Text="Pick a profile on the left to see its extensions." Style="{StaticResource Caption}" Margin="0,12,0,0" />
+                    </StackPanel>
+                </Border>
+            </ScrollViewer>
+        </Grid>
+
+        <GridSplitter Grid.Column="3" Width="8" HorizontalAlignment="Stretch" Background="Transparent" />
+
+        <!-- Right: extension details -->
+        <Border Grid.Column="4" Style="{StaticResource Panel}" Visibility="{Binding SelectedExtension, Converter={StaticResource EmptyToCollapsed}}">
+            <views:ExtensionDetails x:Name="Details" DataContext="{Binding SelectedExtension}" />
+        </Border>
+    </Grid>
+</UserControl>

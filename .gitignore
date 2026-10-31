@@ -1,0 +1,15 @@
+bin/
+obj/
+artifacts/
+TestResults/
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Built programs belong in GitHub Releases, not in the code.
+*.exe
+
+# Scan reports contain profile names and account emails from the machine they ran on.
+ChromeClaudeReport_*.txt
+BrowserProfileReport_*.*

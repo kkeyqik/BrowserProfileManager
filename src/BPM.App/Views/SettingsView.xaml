@@ -1,0 +1,82 @@
+<UserControl x:Class="BPM.App.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:vm="clr-namespace:BPM.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="16,4,24,24" MaxWidth="760" HorizontalAlignment="Left">
+            <TextBlock Text="Settings" Style="{StaticResource PageTitle}" />
+
+            <Border Style="{StaticResource Panel}" Padding="16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Theme" FontWeight="SemiBold" Style="{StaticResource Body}" />
+                        <TextBlock Text="Follow Windows, or always use light or dark." Style="{StaticResource Caption}" />
+                    </StackPanel>
+                    <ComboBox Grid.Column="1" Width="160" ItemsSource="{Binding Themes}" SelectedItem="{Binding Theme}" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource Panel}" Padding="16" Margin="0,8,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Scan when the app opens" FontWeight="SemiBold" Style="{StaticResource Body}" />
+                        <TextBlock Text="Scanning only reads files, so it's safe to run every time." Style="{StaticResource Caption}" />
+                    </StackPanel>
+                    <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding AutoScanOnStart}" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource Panel}" Padding="16" Margin="0,8,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Hide email addresses in exported reports" FontWeight="SemiBold" Style="{StaticResource Body}" />
+                        <TextBlock Text="Reports list every profile; this masks the account emails (a***@gmail.com)." Style="{StaticResource Caption}" />
+                    </StackPanel>
+                    <ui:ToggleSwitch Grid.Column="1" IsChecked="{Binding HideEmailsInReports}" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource Panel}" Padding="16" Margin="0,8,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="App data folder" FontWeight="SemiBold" Style="{StaticResource Body}" />
+                        <TextBlock Text="{Binding DataFolder}" Style="{StaticResource Caption}" />
+                        <TextBlock Text="Holds settings, the change log and backups made before any change." Style="{StaticResource Caption}" />
+                    </StackPanel>
+                    <ui:Button Grid.Column="1" Content="Open" Icon="{ui:SymbolIcon FolderOpen24}" Command="{Binding OpenDataFolderCommand}" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <TextBlock Text="About" Style="{StaticResource SectionTitle}" />
+            <Border Style="{StaticResource Panel}" Padding="16">
+                <StackPanel>
+                    <TextBlock Text="Browser Profile Manager" FontWeight="SemiBold" Style="{StaticResource Body}" />
+                    <TextBlock Text="{Binding VersionText}" Style="{StaticResource Caption}" />
+                    <TextBlock Style="{StaticResource Body}" Margin="0,10,0,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Text="Works offline. Never reads cookies, passwords, history or sign-in data, never edits browsers' protected settings files, and never sends anything anywhere." />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
